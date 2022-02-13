@@ -93,7 +93,7 @@ class Welcome(BaseScene):
 
 class Helper(BaseScene):
 
-    async def reply(self, request):
+    async def reply(self, request: AliceRequest):
 
         text = "Я могу показать расписание твоей группы. Или, например, сказать количество пар сегодня"
 
@@ -120,8 +120,13 @@ class Schedule(BaseScene):
         handler = self.intents_handler[intent]
         return await handler(request)
 
-    async def __get_week_num(self) -> int:
-        pass
+    async def __get_week_parity(self, day: date) -> int:
+        # TODO: fix hardcode
+        start_semestr_date = date(2022, 2, 7)
+        end_semestr_date = date(2022, 6, 4)
+
+        if day >= start_semestr_date and day <= end_semestr_date:
+            return day.isocalendar().week - 5
 
     async def __get_day_num(self, day: str) -> str:
 
@@ -192,10 +197,10 @@ class Schedule(BaseScene):
             return lesson_a
         elif lessons_count >= 2 and lessons_count <= 4:
             return lesson_b
-        elif lessons_count >= 5:
+        elif lessons_count >= 5 or lessons_count == 0:
             return lesson_c
 
-    async def __check_even_array(self, array: list) -> bool:
+    async def __check_odd_array(self, array: list) -> bool:
         return len([n for n in array if n % 2]) > 0
 
     async def __get_schedule_count(self, schedule: dict, day: str, even: bool = True) -> int:
@@ -205,7 +210,7 @@ class Schedule(BaseScene):
             if len(lesson) > 0:
                 if len(lesson) == 1:
                     if even:
-                        if self.__check_even_array(lesson[0]['weeks']):
+                        if not self.__check_odd_array(lesson[0]['weeks']):
                             count += 1
 
                 elif len(lesson) == 2 or len(lesson) == 4:
@@ -217,15 +222,23 @@ class Schedule(BaseScene):
         schedule_text = f"Расписание для группы {group} на {date}\n\n"
 
         for i in range(len(schedule['schedule'][day]['lessons'])):
-            if len(schedule['schedule'][day]['lessons'][i]) > 0:
-                schedule_text += f"{i + 1}-ая пара. {schedule['schedule'][day]['lessons'][i][0]['name']}\n"
-                # if len(schedule['schedule'][day]['lessons'][i]) == 1:
-                #     if even:
-                #         if self.__check_even_array(schedule['schedule'][day]['lessons'][i][0]['weeks']):
-                #             count += 1
 
-                # elif len(schedule['schedule'][day]['lessons'][i]) == 2 or len(schedule['schedule'][day]['lessons'][i]) == 4:
-                #     count += 1
+            if len(schedule['schedule'][day]['lessons'][i]) > 0:
+
+                if len(schedule['schedule'][day]['lessons'][i]) >= 2:
+                    if even:
+                        schedule_text += f"{i + 1}-ая пара. {schedule['schedule'][day]['lessons'][i][1]['name']}\n"
+                    else:
+                        schedule_text += f"{i + 1}-ая пара. {schedule['schedule'][day]['lessons'][i][0]['name']}\n"
+                
+                elif len(schedule['schedule'][day]['lessons'][i]) == 1:
+                    lesson_weeks_even = await self.__check_odd_array(schedule['schedule'][day]['lessons'][i][0]['weeks'])
+                   
+                    if even and not lesson_weeks_even:
+                        schedule_text += f"{i + 1}-ая пара. {schedule['schedule'][day]['lessons'][i][0]['name']}\n"
+
+        if schedule_text == f"Расписание для группы {group} на {date}\n\n":
+            return "Пар нет! Отдыхайте!"
 
         return schedule_text
 
@@ -244,19 +257,21 @@ class Schedule(BaseScene):
         text = None
 
         yandex_datetime = False
-        yandex_day_dict = {
-            0: "Сегодня",
-            1: "Завтра"
-        }
         yandex_day = None
+
+        py_date = None
+        schedule_date = None
+
+        parity = False
 
         if day == "YandexDatetime":
             entities = request.entities
             day = await self.__get_day_num_from_yandex(entities[0]['value']['day'])
             yandex_datetime = True
-            yandex_day = yandex_day_dict[entities[0]['value']['day']]
+            yandex_day = await self.__convert_from_yandex_date(entities[0]['value']['day'])
 
         else:
+            py_date = await self.__get_day_num_python(day)
             day = await self.__get_day_num(day)
 
         if day == "7":
@@ -273,6 +288,27 @@ class Schedule(BaseScene):
                 text = "В воскресенье пар нет, можно отдыхать!"
 
         else:
+
+            # if yandex_datetime:
+
+            #     if yandex_day == "Сегодня":
+            #         schedule_date = date.today().strftime("%d.%m.%Y")
+
+            #     elif yandex_day == "Завтра":
+            #         schedule_date = (date.today() + timedelta(days=1)).strftime("%d.%m.%Y")
+
+            # else:
+            #     schedule_date = await self.__get_nearest_date(py_date)
+
+            # response_schedule_json = await self.get_request(request, group="ИКБО-30-20")
+
+            # week = await self.__get_week_parity(datetime.strptime(schedule_date, "%d.%m.%Y").date())
+
+            # if week % 2 == 0:
+            #     parity = True
+
+            # text = await self.__get_schedule_list(response_schedule_json, "ИКБО-30-20", day, schedule_date, parity)
+
             response_schedule_json = await self.get_request(request, group="ИКБО-30-20")
             lessons_count = await self.__get_schedule_count(response_schedule_json, day, True)
             ru_ending = await self.__convert_to_str(lessons_count)
@@ -298,10 +334,12 @@ class Schedule(BaseScene):
         text = None
 
         yandex_datetime = False
-      
         yandex_day = None
+
         py_date = None
         schedule_date = None
+
+        parity = False
 
         if day == "YandexDatetime":
             entities = request.entities
@@ -340,7 +378,13 @@ class Schedule(BaseScene):
                 schedule_date = await self.__get_nearest_date(py_date)
 
             response_schedule_json = await self.get_request(request, group="ИКБО-30-20")
-            text = await self.__get_schedule_list(response_schedule_json, "ИКБО-30-20", day, schedule_date, True)
+            
+            week = await self.__get_week_parity(datetime.strptime(schedule_date, "%d.%m.%Y").date())
+
+            if week % 2 == 0:
+                parity = True
+
+            text = await self.__get_schedule_list(response_schedule_json, "ИКБО-30-20", day, schedule_date, parity)
 
         return await self.make_response(text, tts=text)
 
