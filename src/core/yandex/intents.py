@@ -1,4 +1,5 @@
-HELP = 'help'
+HELP = 'YANDEX.HELP', 
+WHAT_CAN_YOU_DO = 'YANDEX.WHAT_CAN_YOU_DO'
 
 USER_STUDY_GROUP = 'user_study_group'
 

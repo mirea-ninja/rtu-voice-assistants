@@ -1,0 +1,17 @@
+slots:
+    when:
+        source: $When
+        type: DateTimeType
+
+root:
+    ($Amount)? (пары|уроки|занятия)? (в|во)? ($When)?;
+
+$Amount:
+    %lemma
+    какие
+    пары
+    уроки
+    занятия
+
+$When:
+    $DateTimeType

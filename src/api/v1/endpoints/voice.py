@@ -24,4 +24,24 @@ async def alice_webhook(request: Request,  service: Awaitable[alice.AliceVoiceAs
         service = await service
     logger.info(await request.json())
     response = await service.parse_request_and_routing(request=request)
+
     return ORJSONResponse(content=response)
+
+@router.post(
+    "/marusa",
+    tags=["Marusa"],
+    status_code=HTTP_200_OK,
+)
+async def marusa_webhook(request: Request) -> ORJSONResponse:
+
+    return ORJSONResponse(content={"message": "Not implemented"})
+
+
+@router.post(
+    "/sber",
+    tags=["Sber"],
+    status_code=HTTP_200_OK,
+)
+async def sber_webhook(request: Request) -> ORJSONResponse:
+
+    return ORJSONResponse(content={"message": "Not implemented"})
