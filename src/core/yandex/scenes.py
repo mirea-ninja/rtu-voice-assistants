@@ -4,7 +4,7 @@ import re
 
 from typing import Any, Awaitable, Callable, Optional
 from abc import ABC, abstractmethod
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, date
 
 from src.core.config import SCHEDULE_API_URL
 from src.core.yandex import intents
@@ -120,11 +120,11 @@ class Schedule(BaseScene):
         handler = self.intents_handler[intent]
         return await handler(request)
 
-    async def __get_week_num(self):
+    async def __get_week_num(self) -> int:
         pass
 
     async def __get_day_num(self, day: str) -> str:
-        
+
         days = {
             "Monday": "1",
             "Tuesday": "2",
@@ -136,7 +136,20 @@ class Schedule(BaseScene):
         }
 
         return days[day]
-    
+
+    async def __get_day_num_python(self, day: str) -> int:
+        days = {
+            "Monday": 0,
+            "Tuesday": 1,
+            "Wednesday": 2,
+            "Thursday": 3,
+            "Friday": 4,
+            "Saturday": 5,
+            "Sunday": 6,
+        }
+
+        return days[day]
+
     async def __get_day_name(self, day: str) -> str:
 
         days = {
@@ -150,9 +163,27 @@ class Schedule(BaseScene):
         }
 
         return days[day]
-    
+
+    async def __get_day_num_from_yandex(self, day: int) -> str:
+
+        days = {
+            0: f"{await self.__get_day_num(datetime.today().strftime('%A'))}",
+            1: f"{await self.__get_day_num((datetime.today() + timedelta(days=1)).strftime('%A'))}"
+        }
+
+        return days[day]
+
+    async def __convert_from_yandex_date(self, day: int) -> str:
+        
+        yandex_day_dict = {
+            0: "Сегодня",
+            1: "Завтра"
+        }
+
+        return yandex_day_dict[day]
+
     async def __convert_to_str(self, lessons_count: int) -> str:
-    
+
         lesson_a = "пара"
         lesson_b = "пары"
         lesson_c = "пар"
@@ -164,15 +195,8 @@ class Schedule(BaseScene):
         elif lessons_count >= 5:
             return lesson_c
 
-    async def __get_day_num_from_yandex(self, day: int) -> str:
-        
-        days = {
-            0: f"{await self.__get_day_num(datetime.today().strftime('%A'))}",
-            1: f"{await self.__get_day_num((datetime.today() + timedelta(days=1)).strftime('%A'))}"
-        }
-
-        return days[day]
-
+    async def __check_even_array(self, array: list) -> bool:
+        return len([n for n in array if n % 2]) > 0
 
     async def __get_schedule_count(self, schedule: dict, day: str, even: bool = True) -> int:
         count = 0
@@ -188,9 +212,9 @@ class Schedule(BaseScene):
                     count += 1
 
         return count
-    
-    async def __get_schedule_list(self, schedule: dict, day: str, even: bool = True) -> int:
-        schedule_text = "Расписание для группы user_group на 14.02.2022\n\n"
+
+    async def __get_schedule_list(self, schedule: dict, group: str, day: str, date: str, even: bool = True) -> str:
+        schedule_text = f"Расписание для группы {group} на {date}\n\n"
 
         for i in range(len(schedule['schedule'][day]['lessons'])):
             if len(schedule['schedule'][day]['lessons'][i]) > 0:
@@ -201,17 +225,21 @@ class Schedule(BaseScene):
                 #             count += 1
 
                 # elif len(schedule['schedule'][day]['lessons'][i]) == 2 or len(schedule['schedule'][day]['lessons'][i]) == 4:
-                #     count += 1        
-       
+                #     count += 1
 
-        return schedule_text 
+        return schedule_text
 
-    async def __check_even_array(self, array: list):
+    async def __get_nearest_date(self, weekday) -> str:
+        date_today = date.today()
+        days_ahead = weekday - date_today.weekday()
 
-        return len([n for n in array if n%2]) > 0
+        if days_ahead <= 0: 
+            days_ahead += 7
+
+        return (date_today + timedelta(days_ahead)).strftime("%d.%m.%Y")
 
     async def schedule_info_count(self, request: AliceRequest):
-        
+
         day = request.slots.get('when', '')
         text = None
 
@@ -221,7 +249,7 @@ class Schedule(BaseScene):
             1: "Завтра"
         }
         yandex_day = None
-           
+
         if day == "YandexDatetime":
             entities = request.entities
             day = await self.__get_day_num_from_yandex(entities[0]['value']['day'])
@@ -230,7 +258,7 @@ class Schedule(BaseScene):
 
         else:
             day = await self.__get_day_num(day)
-        
+
         if day == "7":
 
             if yandex_datetime:
@@ -244,8 +272,8 @@ class Schedule(BaseScene):
             else:
                 text = "В воскресенье пар нет, можно отдыхать!"
 
-        else:   
-            response_schedule_json = await self.get_request(request, group = "ИКБО-30-20")
+        else:
+            response_schedule_json = await self.get_request(request, group="ИКБО-30-20")
             lessons_count = await self.__get_schedule_count(response_schedule_json, day, True)
             ru_ending = await self.__convert_to_str(lessons_count)
 
@@ -260,29 +288,31 @@ class Schedule(BaseScene):
             else:
                 day = await self.__get_day_name(day)
                 text = f"В {day.lower()} у тебя {lessons_count} {ru_ending}"
-        
+
         return await self.make_response(text, tts=text)
 
     async def schedule_info_list(self, request: AliceRequest):
+        # TODO: REFACTOR
+
         day = request.slots.get('when', '')
         text = None
 
         yandex_datetime = False
-        yandex_day_dict = {
-            0: "Сегодня",
-            1: "Завтра"
-        }
+      
         yandex_day = None
-           
+        py_date = None
+        schedule_date = None
+
         if day == "YandexDatetime":
             entities = request.entities
             day = await self.__get_day_num_from_yandex(entities[0]['value']['day'])
             yandex_datetime = True
-            yandex_day = yandex_day_dict[entities[0]['value']['day']]
+            yandex_day = await self.__convert_from_yandex_date(entities[0]['value']['day'])
 
         else:
+            py_date = await self.__get_day_num_python(day)
             day = await self.__get_day_num(day)
-        
+
         if day == "7":
 
             if yandex_datetime:
@@ -296,15 +326,28 @@ class Schedule(BaseScene):
             else:
                 text = "В воскресенье пар нет, можно отдыхать!"
 
-        else:   
-            response_schedule_json = await self.get_request(request, group = "ИКБО-30-20")
-            text = await self.__get_schedule_list(response_schedule_json, day, True)
+        else:
+            
+            if yandex_datetime:
+
+                if yandex_day == "Сегодня":
+                    schedule_date = date.today().strftime("%d.%m.%Y")
+
+                elif yandex_day == "Завтра":
+                    schedule_date = (date.today() + timedelta(days=1)).strftime("%d.%m.%Y")
+
+            else:
+                schedule_date = await self.__get_nearest_date(py_date)
+
+            response_schedule_json = await self.get_request(request, group="ИКБО-30-20")
+            text = await self.__get_schedule_list(response_schedule_json, "ИКБО-30-20", day, schedule_date, True)
 
         return await self.make_response(text, tts=text)
 
     def handle_local_intents(self, request: AliceRequest):
         if set(request.intents) & set(intents.SCHEDULE_INTENTS):
             return self
+
 
 class Group(BaseScene):
     def __init__(self):
@@ -329,10 +372,10 @@ class Group(BaseScene):
 
         return await self.make_response(text)
 
-
     def handle_local_intents(self, request: AliceRequest):
         if set(request.intents) & set(intents.SCHEDULE_INTENTS):
             return self
+
 
 SCENES = {
     "helper": Helper,
