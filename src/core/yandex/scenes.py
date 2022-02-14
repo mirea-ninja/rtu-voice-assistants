@@ -1,6 +1,4 @@
-from email.headerregistry import Group
 import logging
-import re
 
 from typing import Any, Awaitable, Callable, Optional
 from abc import ABC, abstractmethod
@@ -35,7 +33,7 @@ class BaseScene(ABC):
 
         if intents.HELP in request.intents or intents.WHAT_CAN_YOU_DO in request.intents:
             return Helper()
-
+    
         if intents_set & set(intents.SCHEDULE_INTENTS):
             return Schedule()
 
@@ -203,22 +201,25 @@ class Schedule(BaseScene):
     async def __check_odd_array(self, array: list) -> bool:
         return len([n for n in array if n % 2]) > 0
 
-    async def __get_schedule_count(self, schedule: dict, day: str, even: bool = True) -> int:
-        count = 0
+    async def __get_schedule_count(self, schedule: dict, day: str, even: bool) -> int:
+        count = 0  
 
         for lesson in schedule['schedule'][day]['lessons']:
             if len(lesson) > 0:
                 if len(lesson) == 1:
-                    if even:
-                        if not self.__check_odd_array(lesson[0]['weeks']):
-                            count += 1
+                    lesson_weeks_odd = await self.__check_odd_array(lesson[0]['weeks'])
 
-                elif len(lesson) == 2 or len(lesson) == 4:
+                    if even and not lesson_weeks_odd:
+                        count += 1
+                    elif not even and lesson_weeks_odd:
+                        count += 1
+
+                elif len(lesson) >= 2:
                     count += 1
 
         return count
 
-    async def __get_schedule_list(self, schedule: dict, group: str, day: str, date: str, even: bool = True) -> str:
+    async def __get_schedule_list(self, schedule: dict, group: str, day: str, date: str, even: bool) -> str:
         schedule_text = f"Расписание для группы {group} на {date}\n\n"
 
         for i in range(len(schedule['schedule'][day]['lessons'])):
@@ -232,9 +233,9 @@ class Schedule(BaseScene):
                         schedule_text += f"{i + 1}-ая пара. {schedule['schedule'][day]['lessons'][i][0]['name']}\n"
                 
                 elif len(schedule['schedule'][day]['lessons'][i]) == 1:
-                    lesson_weeks_even = await self.__check_odd_array(schedule['schedule'][day]['lessons'][i][0]['weeks'])
+                    lesson_weeks_odd = await self.__check_odd_array(schedule['schedule'][day]['lessons'][i][0]['weeks'])
                    
-                    if even and not lesson_weeks_even:
+                    if even and not lesson_weeks_odd:
                         schedule_text += f"{i + 1}-ая пара. {schedule['schedule'][day]['lessons'][i][0]['name']}\n"
 
         if schedule_text == f"Расписание для группы {group} на {date}\n\n":
@@ -252,6 +253,7 @@ class Schedule(BaseScene):
         return (date_today + timedelta(days_ahead)).strftime("%d.%m.%Y")
 
     async def schedule_info_count(self, request: AliceRequest):
+        # TODO: REFACTOR
 
         day = request.slots.get('when', '')
         text = None
@@ -289,41 +291,56 @@ class Schedule(BaseScene):
 
         else:
 
-            # if yandex_datetime:
+            if yandex_datetime:
 
-            #     if yandex_day == "Сегодня":
-            #         schedule_date = date.today().strftime("%d.%m.%Y")
+                if yandex_day == "Сегодня":
+                    schedule_date = date.today().strftime("%d.%m.%Y")
 
-            #     elif yandex_day == "Завтра":
-            #         schedule_date = (date.today() + timedelta(days=1)).strftime("%d.%m.%Y")
+                elif yandex_day == "Завтра":
+                    schedule_date = (date.today() + timedelta(days=1)).strftime("%d.%m.%Y")
 
-            # else:
-            #     schedule_date = await self.__get_nearest_date(py_date)
-
-            # response_schedule_json = await self.get_request(request, group="ИКБО-30-20")
-
-            # week = await self.__get_week_parity(datetime.strptime(schedule_date, "%d.%m.%Y").date())
-
-            # if week % 2 == 0:
-            #     parity = True
-
-            # text = await self.__get_schedule_list(response_schedule_json, "ИКБО-30-20", day, schedule_date, parity)
+            else:
+                schedule_date = await self.__get_nearest_date(py_date)
 
             response_schedule_json = await self.get_request(request, group="ИКБО-30-20")
-            lessons_count = await self.__get_schedule_count(response_schedule_json, day, True)
+
+            week = await self.__get_week_parity(datetime.strptime(schedule_date, "%d.%m.%Y").date())
+
+            if week % 2 == 0:
+                parity = True
+
+            lessons_count = await self.__get_schedule_count(response_schedule_json, day, parity)
             ru_ending = await self.__convert_to_str(lessons_count)
 
             if yandex_datetime:
 
                 if yandex_day == "Сегодня":
-                    text = f"Сегодня у тебя {lessons_count} {ru_ending}"
+
+                    if lessons_count == 0:
+                        text = f"Сегодня у вас нет пар! Отдыхайте!"
+                    else:
+                        text = f"Сегодня у вас {lessons_count} {ru_ending}"
 
                 elif yandex_day == "Завтра":
-                    text = f"Завтра у тебя {lessons_count} {ru_ending}"
+
+                    if lessons_count == 0:
+                        text = f"Завтра у вас нет пар! Отдыхайте!"
+                    else:
+                        text = f"Завтра у вас {lessons_count} {ru_ending}"
 
             else:
                 day = await self.__get_day_name(day)
-                text = f"В {day.lower()} у тебя {lessons_count} {ru_ending}"
+                
+                if lessons_count == 0:
+                    if day == "Вторник":
+                        text = f"Во {day.lower()} пар нет! Отдыхайте"
+                    else:
+                        text = f"В {day.lower()} пар нет! Отдыхайте"
+                else:
+                    if day == "Вторник":
+                        text = f"Во {day.lower()} у вас {lessons_count} {ru_ending}"
+                    else:
+                        text = f"В {day.lower()} у вас {lessons_count} {ru_ending}"
 
         return await self.make_response(text, tts=text)
 
@@ -419,6 +436,9 @@ class Group(BaseScene):
     def handle_local_intents(self, request: AliceRequest):
         if set(request.intents) & set(intents.SCHEDULE_INTENTS):
             return self
+
+class GroupConfirm(BaseScene):
+    pass
 
 
 SCENES = {
