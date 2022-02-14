@@ -90,6 +90,15 @@ class Welcome(BaseScene):
         return self.handle_global_intents(request)
 
 
+class WelcomeDefault(BaseScene):
+
+    async def reply(self, request: AliceRequest):
+        text = 'Привет! Какое расписание тебе нужно сегодня?'
+        return await self.make_response(text, tts=text)
+
+    def handle_local_intents(self, request: AliceRequest):
+        return self.handle_global_intents(request)
+
 class Helper(BaseScene):
 
     async def reply(self, request: AliceRequest):
@@ -124,7 +133,7 @@ class GroupManager(BaseScene):
 
     async def user_group_reject(self, request: AliceRequest):
         pass
-    
+
     async def user_group_set(self, request: AliceRequest):
         text = None
         return await self.make_response(text, tts=text)
@@ -452,6 +461,7 @@ class Schedule(BaseScene):
 SCENES = {
     "helper": Helper,
     "welcome": Welcome,
+    "welcome_default": WelcomeDefault,
     "group": GroupManager,
     "schedule": Schedule
 }

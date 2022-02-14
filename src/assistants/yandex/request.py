@@ -15,11 +15,11 @@ class AliceRequest():
 
     @property
     def user_id(self):
-        return self.request_body['request'].get('session', {}).get('user', {}).get('user_id', '')
+        return self.request_body['session'].get('user', {}).get('user_id', '')
     
     @property
     def application_id(self):
-        return self.request_body['request'].get('session', {}).get('application', {}).get('application_id', '')
+        return self.request_body['session'].get('application', {}).get('application_id', '')
 
     @property
     def intents(self):

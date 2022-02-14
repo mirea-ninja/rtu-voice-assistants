@@ -11,8 +11,10 @@ from starlette.requests import Request
 
 from src.core.session import get_session
 from src.assistants.yandex.request import AliceRequest
-from src.core.yandex.scenes import Welcome, SCENES
+from src.core.yandex.scenes import Welcome, SCENES, WelcomeDefault
 from src.core.yandex.state import STATE_REQUEST_KEY
+from src.crud.user import get_user
+from src.database.database import get_db, Session
 
 logger = logging.getLogger(__name__)
 
@@ -25,8 +27,9 @@ class VoiceAssistantServiceBase(ABC):
 
 
 class AliceVoiceAssistantService(VoiceAssistantServiceBase):
-    def __init__(self, session: ClientSession) -> None:
+    def __init__(self, session: ClientSession, db: Session) -> None:
         self.session = session
+        self.db = db
 
     async def parse_request_and_routing(self, request: Request) -> dict[str, Any]:
 
@@ -37,8 +40,23 @@ class AliceVoiceAssistantService(VoiceAssistantServiceBase):
             STATE_REQUEST_KEY, {}).get('scene')
 
         if current_scene_id is None:
-            return await Welcome().reply(request)
 
+            if request.user_id != '':
+                user_id = request.user_id
+
+                if await get_user(user_id, self.db) != None:
+                    return await WelcomeDefault().reply(request)
+                else:
+                    return await Welcome().reply(request)
+
+            elif request.application_id != '':
+                user_id = request.application_id
+
+                if await get_user(user_id, self.db) != None:
+                    return await WelcomeDefault().reply(request)
+                else:
+                    return await Welcome().reply(request)
+                    
         current_scene = SCENES.get(current_scene_id, Welcome)()
         next_scene = current_scene.move(request)
 
@@ -49,9 +67,9 @@ class AliceVoiceAssistantService(VoiceAssistantServiceBase):
 
 
 @lru_cache()
-async def get_alice_voice_assistant_service(session: Awaitable[ClientSession] = Depends(get_session)) -> AliceVoiceAssistantService:
+async def get_alice_voice_assistant_service(session: Awaitable[ClientSession] = Depends(get_session), db: Session = Depends(get_db)) -> AliceVoiceAssistantService:
 
     if isinstance(session, collections.abc.Awaitable):
         session = await session
 
-    return AliceVoiceAssistantService(session=session)
+    return AliceVoiceAssistantService(session=session, db=db)
