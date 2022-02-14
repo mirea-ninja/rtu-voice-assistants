@@ -1,22 +1,54 @@
 version: '3.9'
 
 services:
-  backend:
-    build:
-      context: ./backend
-      dockerfile: Dockerfile
+  # backend:
+  #   build:
+  #     context: ./src
+  #     dockerfile: Dockerfile
+  #   environment:
+  #     POSTGRES_DB: ${DATABASE_NAME}
+  #     POSTGRES_USER: ${DATABASE_USER}
+  #     POSTGRES_PASSWORD: ${DATABASE_PASSWORD}
+  #   ports:
+  #     - '8080:8080'
+  #   volumes:
+  #     - ./:/main
+  #   command:
+  #     [
+  #       "uvicorn",
+  #       "src.app:app",
+  #       "--host",
+  #       "0.0.0.0",
+  #       "--port",
+  #       "3001"
+  #     ]
+  #   restart: always
+  #   container_name: voice-helper-server
+
+  database:
+    image: postgres:12.2-alpine
+    environment:
+      POSTGRES_DB: ${DATABASE_NAME}
+      POSTGRES_USER: ${DATABASE_USER}
+      POSTGRES_PASSWORD: ${DATABASE_PASSWORD}
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
     ports:
-      - '8080:8080'
+      - "${DATABASE_PORT}:${DATABASE_PORT}"
     volumes:
-      - ./backend:/main
-    command:
-      [
-        "uvicorn",
-        "src.app:app",
-        "--host",
-        "0.0.0.0",
-        "--port",
-        "3001"
-      ]
+      - voice-assistants-postgres-db:/var/lib/postgresql
     restart: always
-    container_name: voice-helper-server
+    container_name: voice-helper-database
+
+  database-admin:
+    image: dpage/pgadmin4
+    environment:
+      PGADMIN_DEFAULT_EMAIL: ${ADMIN_DEFAULT_EMAIL}
+      PGADMIN_DEFAULT_PASSWORD: ${ADMIN_DEFAULT_PASSWORD}
+    ports:
+      - "5050:80"
+    container_name: voice-helper-database-admin
+    restart: always
+
+volumes:
+  voice-assistants-postgres-db:

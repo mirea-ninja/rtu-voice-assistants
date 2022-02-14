@@ -4,6 +4,7 @@ pydantic==1.8.2
 SQLAlchemy
 requests
 asyncio
+psycopg2
 typing
 orjson
 overpy

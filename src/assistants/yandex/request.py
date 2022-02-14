@@ -14,6 +14,14 @@ class AliceRequest():
         return self.request_body[key]
 
     @property
+    def user_id(self):
+        return self.request_body['request'].get('session', {}).get('user', {}).get('user_id', '')
+    
+    @property
+    def application_id(self):
+        return self.request_body['request'].get('session', {}).get('application', {}).get('application_id', '')
+
+    @property
     def intents(self):
         return self.request_body['request'].get('nlu', {}).get('intents', {})
 

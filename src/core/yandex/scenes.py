@@ -8,6 +8,7 @@ from src.core.config import SCHEDULE_API_URL
 from src.core.yandex import intents
 from src.core.yandex.state import STATE_REQUEST_KEY, STATE_RESPONSE_KEY
 from src.assistants.yandex.request import AliceRequest
+from src.crud.user import get_user
 
 logger = logging.getLogger(__name__)
 
@@ -33,7 +34,7 @@ class BaseScene(ABC):
 
         if intents.HELP in request.intents or intents.WHAT_CAN_YOU_DO in request.intents:
             return Helper()
-    
+
         if intents_set & set(intents.SCHEDULE_INTENTS):
             return Schedule()
 
@@ -92,13 +93,49 @@ class Welcome(BaseScene):
 class Helper(BaseScene):
 
     async def reply(self, request: AliceRequest):
-
         text = "Я могу показать расписание твоей группы. Или, например, сказать количество пар сегодня"
-
         return await self.make_response(text, tts=text)
 
     def handle_local_intents(self, request: AliceRequest):
         return self.handle_global_intents(request)
+
+
+class GroupManager(BaseScene):
+
+    def __init__(self):
+
+        self.intents_dict = {
+            intents.USER_STUDY_GROUP_SET: self.user_group_set,
+            intents.USER_STUDY_GROUP_UPDATE: self.user_group_update,
+        }
+
+
+    @property
+    def intents_handler(self) -> dict[str, Callable[[AliceRequest], Awaitable]]:
+        return self.intents_dict
+
+    async def reply(self, request: AliceRequest) -> dict[str, Any]:
+        intent = list(request.intents.keys())[0]
+        handler = self.intents_handler[intent]
+        return await handler(request)
+
+    async def user_group_confirm(self, request: AliceRequest):
+        pass
+
+    async def user_group_reject(self, request: AliceRequest):
+        pass
+    
+    async def user_group_set(self, request: AliceRequest):
+        text = None
+        return await self.make_response(text, tts=text)
+    
+    async def user_group_update(self, request: AliceRequest):
+        text = None
+        return await self.make_response(text, tts=text)
+
+    def handle_local_intents(self, request: AliceRequest):
+        if set(request.intents) & set(intents.USER_STUDY_GROUP_INTENTS):
+            return self
 
 
 class Schedule(BaseScene):
@@ -107,7 +144,6 @@ class Schedule(BaseScene):
             intents.SCHEDULE_COUNT: self.schedule_info_count,
             intents.SCHEDULE_LIST: self.schedule_info_list,
         }
-        self.user_group = None
 
     @property
     def intents_handler(self) -> dict[str, Callable[[AliceRequest], Awaitable]]:
@@ -141,6 +177,7 @@ class Schedule(BaseScene):
         return days[day]
 
     async def __get_day_num_python(self, day: str) -> int:
+
         days = {
             "Monday": 0,
             "Tuesday": 1,
@@ -177,7 +214,7 @@ class Schedule(BaseScene):
         return days[day]
 
     async def __convert_from_yandex_date(self, day: int) -> str:
-        
+
         yandex_day_dict = {
             0: "Сегодня",
             1: "Завтра"
@@ -202,7 +239,7 @@ class Schedule(BaseScene):
         return len([n for n in array if n % 2]) > 0
 
     async def __get_schedule_count(self, schedule: dict, day: str, even: bool) -> int:
-        count = 0  
+        count = 0
 
         for lesson in schedule['schedule'][day]['lessons']:
             if len(lesson) > 0:
@@ -231,10 +268,10 @@ class Schedule(BaseScene):
                         schedule_text += f"{i + 1}-ая пара. {schedule['schedule'][day]['lessons'][i][1]['name']}\n"
                     else:
                         schedule_text += f"{i + 1}-ая пара. {schedule['schedule'][day]['lessons'][i][0]['name']}\n"
-                
+
                 elif len(schedule['schedule'][day]['lessons'][i]) == 1:
                     lesson_weeks_odd = await self.__check_odd_array(schedule['schedule'][day]['lessons'][i][0]['weeks'])
-                   
+
                     if even and not lesson_weeks_odd:
                         schedule_text += f"{i + 1}-ая пара. {schedule['schedule'][day]['lessons'][i][0]['name']}\n"
 
@@ -247,7 +284,7 @@ class Schedule(BaseScene):
         date_today = date.today()
         days_ahead = weekday - date_today.weekday()
 
-        if days_ahead <= 0: 
+        if days_ahead <= 0:
             days_ahead += 7
 
         return (date_today + timedelta(days_ahead)).strftime("%d.%m.%Y")
@@ -297,7 +334,8 @@ class Schedule(BaseScene):
                     schedule_date = date.today().strftime("%d.%m.%Y")
 
                 elif yandex_day == "Завтра":
-                    schedule_date = (date.today() + timedelta(days=1)).strftime("%d.%m.%Y")
+                    schedule_date = (
+                        date.today() + timedelta(days=1)).strftime("%d.%m.%Y")
 
             else:
                 schedule_date = await self.__get_nearest_date(py_date)
@@ -330,7 +368,7 @@ class Schedule(BaseScene):
 
             else:
                 day = await self.__get_day_name(day)
-                
+
                 if lessons_count == 0:
                     if day == "Вторник":
                         text = f"Во {day.lower()} пар нет! Отдыхайте"
@@ -382,20 +420,21 @@ class Schedule(BaseScene):
                 text = "В воскресенье пар нет, можно отдыхать!"
 
         else:
-            
+
             if yandex_datetime:
 
                 if yandex_day == "Сегодня":
                     schedule_date = date.today().strftime("%d.%m.%Y")
 
                 elif yandex_day == "Завтра":
-                    schedule_date = (date.today() + timedelta(days=1)).strftime("%d.%m.%Y")
+                    schedule_date = (
+                        date.today() + timedelta(days=1)).strftime("%d.%m.%Y")
 
             else:
                 schedule_date = await self.__get_nearest_date(py_date)
 
             response_schedule_json = await self.get_request(request, group="ИКБО-30-20")
-            
+
             week = await self.__get_week_parity(datetime.strptime(schedule_date, "%d.%m.%Y").date())
 
             if week % 2 == 0:
@@ -410,40 +449,9 @@ class Schedule(BaseScene):
             return self
 
 
-class Group(BaseScene):
-    def __init__(self):
-        self.intents_dict = {
-            intents.USER_STUDY_GROUP: self.set_user_group,
-        }
-
-    @property
-    def intents_handler(self) -> dict[str, Callable[[AliceRequest], Awaitable]]:
-        return self.intents_dict
-
-    async def reply(self, request: AliceRequest) -> dict[str, Any]:
-        intent = list(request.intents.keys())[0]
-        handler = self.intents_handler[intent]
-        return await handler(request)
-
-    async def set_user_group(self, request: AliceRequest):
-
-        group = request.slots.get('user_group_name', '')
-
-        text = f"Отлично, теперь я знаю, что ты из {group}"
-
-        return await self.make_response(text)
-
-    def handle_local_intents(self, request: AliceRequest):
-        if set(request.intents) & set(intents.SCHEDULE_INTENTS):
-            return self
-
-class GroupConfirm(BaseScene):
-    pass
-
-
 SCENES = {
     "helper": Helper,
     "welcome": Welcome,
-    "group": Group,
+    "group": GroupManager,
     "schedule": Schedule
 }
