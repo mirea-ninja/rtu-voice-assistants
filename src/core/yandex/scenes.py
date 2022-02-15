@@ -1,4 +1,5 @@
 import logging
+import difflib
 
 from typing import Any, Awaitable, Callable, Optional
 from abc import ABC, abstractmethod
@@ -74,9 +75,14 @@ class BaseScene(ABC):
 
         return webhook_response
 
-    async def get_request(self, request: AliceRequest, group: str = 10):
+    async def get_schedule_request(self, request: AliceRequest, group: str = 10):
 
         async with request.session.get(url=f"{SCHEDULE_API_URL}/{group}/full_schedule") as response:
+            return await response.json()
+    
+    async def get_groups_request(self, request: AliceRequest):
+
+        async with request.session.get(url=f"{SCHEDULE_API_URL}/groups") as response:
             return await response.json()
 
 
@@ -128,6 +134,11 @@ class GroupManager(BaseScene):
         handler = self.intents_handler[intent]
         return await handler(request)
 
+    async def __find_user_group(self, groups: list, user_group: str):
+        list_matchers = [difflib.SequenceMatcher(None, user_group.upper(), group) for group in groups]
+        list_matchers = [match.ratio() for match in list_matchers]
+        return groups[list_matchers.index(max(list_matchers))]
+
     async def user_group_confirm(self, request: AliceRequest):
         pass
 
@@ -135,6 +146,7 @@ class GroupManager(BaseScene):
         pass
 
     async def user_group_set(self, request: AliceRequest):
+        groups_json = await self.get_groups_request(request)
         text = None
         return await self.make_response(text, tts=text)
     
@@ -349,7 +361,7 @@ class Schedule(BaseScene):
             else:
                 schedule_date = await self.__get_nearest_date(py_date)
 
-            response_schedule_json = await self.get_request(request, group="ИКБО-30-20")
+            response_schedule_json = await self.get_schedule_request(request, group="ИКБО-30-20")
 
             week = await self.__get_week_parity(datetime.strptime(schedule_date, "%d.%m.%Y").date())
 
@@ -442,7 +454,7 @@ class Schedule(BaseScene):
             else:
                 schedule_date = await self.__get_nearest_date(py_date)
 
-            response_schedule_json = await self.get_request(request, group="ИКБО-30-20")
+            response_schedule_json = await self.get_schedule_request(request, group="ИКБО-30-20")
 
             week = await self.__get_week_parity(datetime.strptime(schedule_date, "%d.%m.%Y").date())
 
