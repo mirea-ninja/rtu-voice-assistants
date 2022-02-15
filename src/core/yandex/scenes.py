@@ -1,5 +1,6 @@
 import logging
 import difflib
+import re
 
 from typing import Any, Awaitable, Callable, Optional
 from abc import ABC, abstractmethod
@@ -9,7 +10,7 @@ from src.core.config import SCHEDULE_API_URL
 from src.core.yandex import intents
 from src.core.yandex.state import STATE_REQUEST_KEY, STATE_RESPONSE_KEY
 from src.assistants.yandex.request import AliceRequest
-from src.crud.user import get_user
+from src.utils.schedule_utils import ScheduleUtils
 
 logger = logging.getLogger(__name__)
 
@@ -38,6 +39,9 @@ class BaseScene(ABC):
 
         if intents_set & set(intents.SCHEDULE_INTENTS):
             return Schedule()
+        
+        if intents_set & set(intents.USER_STUDY_GROUP_INTENTS):
+            return GroupManager()
 
     async def handle_local_intents(self, request: AliceRequest) -> Optional[str]:
         ...
@@ -122,6 +126,8 @@ class GroupManager(BaseScene):
         self.intents_dict = {
             intents.USER_STUDY_GROUP_SET: self.user_group_set,
             intents.USER_STUDY_GROUP_UPDATE: self.user_group_update,
+            intents.CONFIRM: self.user_group_confirm,
+            intents.REJECT: self.user_group_reject
         }
 
 
@@ -139,6 +145,34 @@ class GroupManager(BaseScene):
         list_matchers = [match.ratio() for match in list_matchers]
         return groups[list_matchers.index(max(list_matchers))]
 
+    async def __find_user_group_v2(self, groups: list, user_group: str):
+
+        if len(user_group) < 5 or len(user_group) > 10:
+            return None
+
+        result = re.search(r'[а-яА-Яa-zA-Z]{5,}', user_group)
+
+        if result:
+            return None
+
+        result = re.search(r'\d\d', user_group)
+
+        if result:
+            group_name = user_group.replace(' ', '')[0:result.span()[0] - 1]
+            group_number = result.group(0)
+
+            for group in groups:
+                group = group[0:7]
+
+                if group_name.lower() in group.lower() and group_number in group:
+                    return group
+
+        else:
+            list_matchers = [difflib.SequenceMatcher(
+                None, user_group.lower(), group.lower()) for group in groups]
+            list_matchers = [match.ratio() for match in list_matchers]
+            return groups[list_matchers.index(max(list_matchers))]
+
     async def user_group_confirm(self, request: AliceRequest):
         pass
 
@@ -147,7 +181,10 @@ class GroupManager(BaseScene):
 
     async def user_group_set(self, request: AliceRequest):
         groups_json = await self.get_groups_request(request)
-        text = None
+        group = request.original_utterance
+        # group = await self.__find_user_group(groups_json['groups'], group)
+        group = await self.__find_user_group_v2(groups_json['groups'],  group)
+        text = f"Ваша группа - {group} верно?"
         return await self.make_response(text, tts=text)
     
     async def user_group_update(self, request: AliceRequest):
@@ -175,13 +212,8 @@ class Schedule(BaseScene):
         handler = self.intents_handler[intent]
         return await handler(request)
 
-    async def __get_week_parity(self, day: date) -> int:
-        # TODO: fix hardcode
-        start_semestr_date = date(2022, 2, 7)
-        end_semestr_date = date(2022, 6, 4)
-
-        if day >= start_semestr_date and day <= end_semestr_date:
-            return day.isocalendar().week - 5
+    async def __get_week_parity(self, day: datetime) -> bool:
+        return ScheduleUtils.get_week(day) % 2
 
     async def __get_day_num(self, day: str) -> str:
 
@@ -362,11 +394,7 @@ class Schedule(BaseScene):
                 schedule_date = await self.__get_nearest_date(py_date)
 
             response_schedule_json = await self.get_schedule_request(request, group="ИКБО-30-20")
-
-            week = await self.__get_week_parity(datetime.strptime(schedule_date, "%d.%m.%Y").date())
-
-            if week % 2 == 0:
-                parity = True
+            parity = await self.__get_week_parity(datetime.strptime(schedule_date, "%d.%m.%Y"))
 
             lessons_count = await self.__get_schedule_count(response_schedule_json, day, parity)
             ru_ending = await self.__convert_to_str(lessons_count)
@@ -455,11 +483,7 @@ class Schedule(BaseScene):
                 schedule_date = await self.__get_nearest_date(py_date)
 
             response_schedule_json = await self.get_schedule_request(request, group="ИКБО-30-20")
-
-            week = await self.__get_week_parity(datetime.strptime(schedule_date, "%d.%m.%Y").date())
-
-            if week % 2 == 0:
-                parity = True
+            parity = await self.__get_week_parity(datetime.strptime(schedule_date, "%d.%m.%Y"))
 
             text = await self.__get_schedule_list(response_schedule_json, "ИКБО-30-20", day, schedule_date, parity)
 

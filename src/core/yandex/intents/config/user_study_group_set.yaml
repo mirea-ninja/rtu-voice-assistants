@@ -1,19 +1,10 @@
 slots:
-    type:
-        source: $When
-        type: DateTimeType
+    group:
+        source: $Group
+        type: GroupType
 
 root:
-    ($Amount)? (пар|уроков|занятий)? (в|во)? ($When)?;
+    $Group ($YANDEX.NUMBER) ($YANDEX.NUMBER)
 
-$Amount:
-    %lemma
-    какие
-    сколько
-    количество
-    пары
-    уроки
-    занятия
-
-$When:
-    $DateTimeType
+$Group:
+    .+
