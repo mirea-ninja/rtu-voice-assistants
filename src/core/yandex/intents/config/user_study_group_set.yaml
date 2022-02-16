@@ -4,7 +4,7 @@ slots:
         type: GroupType
 
 root:
-    $Group ($YANDEX.NUMBER) ($YANDEX.NUMBER)
+    $Group ($YANDEX.NUMBER) ($YANDEX.NUMBER)?
 
 $Group:
     .+

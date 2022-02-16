@@ -11,6 +11,7 @@ from src.core.yandex import intents
 from src.core.yandex.state import STATE_REQUEST_KEY, STATE_RESPONSE_KEY
 from src.assistants.yandex.request import AliceRequest
 from src.utils.schedule_utils import ScheduleUtils
+from src.crud.user import get_user, update_user
 
 logger = logging.getLogger(__name__)
 
@@ -53,7 +54,7 @@ class BaseScene(ABC):
 
         return await self.make_response(text, tts=text)
 
-    async def make_response(self, text, tts=None, state=None):
+    async def make_response(self, text, tts=None, state=None, group=None):
 
         if len(text) > 1024:
             text = text[:1024]
@@ -71,6 +72,7 @@ class BaseScene(ABC):
             'version': '1.0',
             STATE_RESPONSE_KEY: {
                 'scene': self.id(),
+                'group': group
             },
         }
 
@@ -129,7 +131,7 @@ class GroupManager(BaseScene):
             intents.CONFIRM: self.user_group_confirm,
             intents.REJECT: self.user_group_reject
         }
-
+        
 
     @property
     def intents_handler(self) -> dict[str, Callable[[AliceRequest], Awaitable]]:
@@ -140,12 +142,12 @@ class GroupManager(BaseScene):
         handler = self.intents_handler[intent]
         return await handler(request)
 
-    async def __find_user_group(self, groups: list, user_group: str):
-        list_matchers = [difflib.SequenceMatcher(None, user_group.upper(), group) for group in groups]
-        list_matchers = [match.ratio() for match in list_matchers]
-        return groups[list_matchers.index(max(list_matchers))]
+    # async def __find_user_group(self, groups: list, user_group: str):
+    #     list_matchers = [difflib.SequenceMatcher(None, user_group.upper(), group) for group in groups]
+    #     list_matchers = [match.ratio() for match in list_matchers]
+    #     return groups[list_matchers.index(max(list_matchers))]
 
-    async def __find_user_group_v2(self, groups: list, user_group: str):
+    async def __find_user_group(self, groups: list, user_group: str):
 
         if len(user_group) < 5 or len(user_group) > 10:
             return None
@@ -155,17 +157,30 @@ class GroupManager(BaseScene):
         if result:
             return None
 
+        user_group = user_group.replace(' ', '')
         result = re.search(r'\d\d', user_group)
 
         if result:
-            group_name = user_group.replace(' ', '')[0:result.span()[0] - 1]
+            group_user_group = user_group[0:result.span()[0] - 1]
             group_number = result.group(0)
 
             for group in groups:
-                group = group[0:7]
+                group_temp = group[0:7]
 
-                if group_name.lower() in group.lower() and group_number in group:
-                    return group
+                if group_user_group.lower() in group.lower() and group_number in group_temp:
+                    year_number = user_group[result.span()[1]:]
+                    year_number = re.findall(r'\d', year_number)
+
+                    if len(year_number) > 0:
+                        year_number = ''.join(year_number)
+                        if len(year_number) == 2:
+                            if group[8:] == year_number:
+                                return group
+                        elif len(year_number) == 1:
+                            if group[8] == year_number:
+                                return group
+                    else:
+                        return group
 
         else:
             list_matchers = [difflib.SequenceMatcher(
@@ -174,18 +189,41 @@ class GroupManager(BaseScene):
             return groups[list_matchers.index(max(list_matchers))]
 
     async def user_group_confirm(self, request: AliceRequest):
-        pass
+        user_group = request.get_group
+
+        if request.user_id != '':
+            user_id = request.user_id
+            user = {
+                "user_id": user_id,
+                "group": user_group
+            }
+
+            await update_user(user, request.db)
+
+        elif request.application_id != '':
+            user_id = request.application_id
+            user = {
+                "user_id": user_id,
+                "group": user_group
+            }
+
+            await update_user(user, request.db)
+                   
+       
+        text = f"Отлично, я запомнила, что вы из {user_group}"
+        return await self.make_response(text, tts=text)
 
     async def user_group_reject(self, request: AliceRequest):
-        pass
+        self.user_group = ""
+        text = f"Давайте попробуем еще раз"
+        return await self.make_response(text, tts=text)
 
     async def user_group_set(self, request: AliceRequest):
         groups_json = await self.get_groups_request(request)
-        group = request.original_utterance
-        # group = await self.__find_user_group(groups_json['groups'], group)
-        group = await self.__find_user_group_v2(groups_json['groups'],  group)
-        text = f"Ваша группа - {group} верно?"
-        return await self.make_response(text, tts=text)
+        group = request.command
+        user_group = await self.__find_user_group(groups_json['groups'],  group)
+        text = f"Ваша группа - {user_group} верно?"
+        return await self.make_response(text, tts=text, group=user_group)
     
     async def user_group_update(self, request: AliceRequest):
         text = None
@@ -347,6 +385,7 @@ class Schedule(BaseScene):
 
         day = request.slots.get('when', '')
         text = None
+        group = None
 
         yandex_datetime = False
         yandex_day = None
@@ -393,7 +432,16 @@ class Schedule(BaseScene):
             else:
                 schedule_date = await self.__get_nearest_date(py_date)
 
-            response_schedule_json = await self.get_schedule_request(request, group="ИКБО-30-20")
+            if request.user_id != '':
+                user_id = request.user_id
+                user = await get_user(user_id, request.get_db)
+            
+            elif request.application_id != '':
+                user_id = request.application_id
+                user = await get_user(user_id, request.get_db)
+          
+    
+            response_schedule_json = await self.get_schedule_request(request, group=user.group)
             parity = await self.__get_week_parity(datetime.strptime(schedule_date, "%d.%m.%Y"))
 
             lessons_count = await self.__get_schedule_count(response_schedule_json, day, parity)
@@ -436,7 +484,8 @@ class Schedule(BaseScene):
 
         day = request.slots.get('when', '')
         text = None
-
+        group = None
+            
         yandex_datetime = False
         yandex_day = None
 
@@ -481,11 +530,19 @@ class Schedule(BaseScene):
 
             else:
                 schedule_date = await self.__get_nearest_date(py_date)
+            
+            if request.user_id != '':
+                user_id = request.user_id
+                user = await get_user(user_id, request.get_db)
 
-            response_schedule_json = await self.get_schedule_request(request, group="ИКБО-30-20")
+            elif request.application_id != '':
+                user_id = request.application_id
+                user = await get_user(user_id, request.get_db)
+            
+            response_schedule_json = await self.get_schedule_request(request, group=user.group)
             parity = await self.__get_week_parity(datetime.strptime(schedule_date, "%d.%m.%Y"))
 
-            text = await self.__get_schedule_list(response_schedule_json, "ИКБО-30-20", day, schedule_date, parity)
+            text = await self.__get_schedule_list(response_schedule_json, user.group, day, schedule_date, parity)
 
         return await self.make_response(text, tts=text)
 

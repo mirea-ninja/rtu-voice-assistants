@@ -3,8 +3,8 @@ from src.database.database import User, Session
 
 async def create_user(user, db: Session):
 
-    if db.query(User).filter(User.user_id == user.user_id).first() == None:
-        new_user = User(user_id = user.user_id, group = user.group)
+    if db.query(User).filter(User.user_id == user['user_id']).first() == None:
+        new_user = User(user_id = user['user_id'], group = user['group'])
         db.add(new_user)
         db.commit()
         return True
@@ -12,9 +12,9 @@ async def create_user(user, db: Session):
         return False
 
 async def update_user(user, db: Session):
-    dbuser = db.query(User).filter(User.user_id == user.user_id).first()
+    dbuser = db.query(User).filter(User.user_id == user['user_id']).first()
     if dbuser is not None:
-        dbuser.group = user.group
+        dbuser.group = user['group']
         db.commit()
         return True
     else:

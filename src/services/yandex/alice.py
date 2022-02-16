@@ -13,7 +13,7 @@ from src.core.session import get_session
 from src.assistants.yandex.request import AliceRequest
 from src.core.yandex.scenes import Welcome, SCENES, WelcomeDefault
 from src.core.yandex.state import STATE_REQUEST_KEY
-from src.crud.user import get_user
+from src.crud.user import create_user, get_user
 from src.database.database import get_db, Session
 
 logger = logging.getLogger(__name__)
@@ -35,7 +35,7 @@ class AliceVoiceAssistantService(VoiceAssistantServiceBase):
 
         event = await request.json()
 
-        request = AliceRequest(request_body=event, session=self.session)
+        request = AliceRequest(request_body=event, session=self.session, db=self.db)
         current_scene_id = event.get('state', {}).get(
             STATE_REQUEST_KEY, {}).get('scene')
 
@@ -47,6 +47,13 @@ class AliceVoiceAssistantService(VoiceAssistantServiceBase):
                 if await get_user(user_id, self.db) != None:
                     return await WelcomeDefault().reply(request)
                 else:
+
+                    user = {
+                        "user_id": user_id,
+                        "group": ""
+                    }
+
+                    await create_user(user, self.db)
                     return await Welcome().reply(request)
 
             elif request.application_id != '':
@@ -55,6 +62,12 @@ class AliceVoiceAssistantService(VoiceAssistantServiceBase):
                 if await get_user(user_id, self.db) != None:
                     return await WelcomeDefault().reply(request)
                 else:
+                    user = {
+                        "user_id": user_id,
+                        "group": ""
+                    }
+
+                    await create_user(user, self.db)
                     return await Welcome().reply(request)
                     
         current_scene = SCENES.get(current_scene_id, Welcome)()
