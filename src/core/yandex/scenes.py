@@ -48,7 +48,7 @@ class BaseScene(ABC):
         ...
 
     async def fallback(self, request: AliceRequest):
-        text = 'Не понимаю. Попробуй сформулировать иначе'
+        text = 'Не понимаю. Попробуйте сформулировать иначе. Скажите "Помощь" или "Что ты умеешь" и я помогу'
 
         logger.error(f'incomprehensible intent: {request.original_utterance}')
 
@@ -95,7 +95,7 @@ class BaseScene(ABC):
 class Welcome(BaseScene):
 
     async def reply(self, request: AliceRequest):
-        text = 'Привет! Теперь я умею показывать расписание РТУ МИРЭА. Для начала скажи мне свою группу.'
+        text = 'Привет! Теперь я умею показывать расписание РТУ МИРЭА. Для начала скажите мне свою группу.'
         return await self.make_response(text, tts=text)
 
     def handle_local_intents(self, request: AliceRequest):
@@ -105,7 +105,7 @@ class Welcome(BaseScene):
 class WelcomeDefault(BaseScene):
 
     async def reply(self, request: AliceRequest):
-        text = 'Привет! Какое расписание тебе нужно сегодня?'
+        text = 'Привет! Какое расписание вам нужно сегодня?'
         return await self.make_response(text, tts=text)
 
     def handle_local_intents(self, request: AliceRequest):
@@ -215,14 +215,14 @@ class GroupManager(BaseScene):
 
     async def user_group_reject(self, request: AliceRequest):
         self.user_group = ""
-        text = f"Давайте попробуем еще раз"
+        text = f"Давайте попробуем еще раз. Назовите вашу группу"
         return await self.make_response(text, tts=text)
 
     async def user_group_set(self, request: AliceRequest):
         groups_json = await self.get_groups_request(request)
         group = request.command
         user_group = await self.__find_user_group(groups_json['groups'],  group)
-        text = f"Ваша группа - {user_group} верно?"
+        text = f"Ваша группа {user_group}, верно?"
         return await self.make_response(text, tts=text, group=user_group)
     
     async def user_group_update(self, request: AliceRequest):
