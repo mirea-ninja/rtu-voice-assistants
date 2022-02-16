@@ -188,6 +188,8 @@ class GroupManager(BaseScene):
 
     async def __find_user_group(self, groups: list, user_group: str):
 
+        user_group = user_group.replace(' ', '')
+        
         if len(user_group) < 5 or len(user_group) > 10:
             return None
 
