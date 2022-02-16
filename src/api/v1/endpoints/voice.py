@@ -34,8 +34,20 @@ async def alice_webhook(request: Request,  service: Awaitable[alice.AliceVoiceAs
 )
 async def marusa_webhook(request: Request) -> ORJSONResponse:
 
-    return ORJSONResponse(content={"message": "Not implemented"})
+    response = await request.json()
+    derived_session_fields = ['session_id', 'user_id', 'message_id']
+    response_message = {
+        "response": {
+            "text": response['request']['original_utterance'],
+            "tts": "Здарова атец",
+            "end_session": False
+        },
+        "session": {derived_key: response['session'][derived_key] for derived_key in derived_session_fields},
+        "version": response['version']
+    }
 
+    return response_message
+    
 
 @router.post(
     "/sber",

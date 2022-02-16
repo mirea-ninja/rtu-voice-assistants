@@ -6,12 +6,16 @@ from typing import Any, Awaitable, Callable, Optional
 from abc import ABC, abstractmethod
 from datetime import datetime, timedelta, date
 
+from src.assistants.yandex.request import AliceRequest
+
 from src.core.config import SCHEDULE_API_URL
 from src.core.yandex import intents
-from src.core.yandex.state import STATE_REQUEST_KEY, STATE_RESPONSE_KEY
-from src.assistants.yandex.request import AliceRequest
-from src.utils.schedule_utils import ScheduleUtils
+from src.core.yandex.state import STATE_RESPONSE_KEY
+
 from src.crud.user import get_user, update_user
+
+from src.utils.schedule_utils import ScheduleUtils
+from src.utils.response_utils import ReponseUtils
 
 logger = logging.getLogger(__name__)
 
@@ -40,9 +44,12 @@ class BaseScene(ABC):
 
         if intents_set & set(intents.SCHEDULE_INTENTS):
             return Schedule()
-        
+
         if intents_set & set(intents.USER_STUDY_GROUP_INTENTS):
             return GroupManager()
+        
+        if intents_set & set(intents.EXIT_INTENTS):
+            return GoodBye()
 
     async def handle_local_intents(self, request: AliceRequest) -> Optional[str]:
         ...
@@ -54,7 +61,7 @@ class BaseScene(ABC):
 
         return await self.make_response(text, tts=text)
 
-    async def make_response(self, text, tts=None, state=None, group=None):
+    async def make_response(self, text, tts=None, buttons=None, state=None, group=None, exit=False):
 
         if len(text) > 1024:
             text = text[:1024]
@@ -66,6 +73,12 @@ class BaseScene(ABC):
             'text': text,
             'tts': tts,
         }
+
+        if buttons is not None:
+            response['buttons'] = buttons
+
+        if exit:
+            response['end_session'] = True
 
         webhook_response = {
             'response': response,
@@ -85,7 +98,7 @@ class BaseScene(ABC):
 
         async with request.session.get(url=f"{SCHEDULE_API_URL}/{group}/full_schedule") as response:
             return await response.json()
-    
+
     async def get_groups_request(self, request: AliceRequest):
 
         async with request.session.get(url=f"{SCHEDULE_API_URL}/groups") as response:
@@ -105,17 +118,49 @@ class Welcome(BaseScene):
 class WelcomeDefault(BaseScene):
 
     async def reply(self, request: AliceRequest):
-        text = 'Привет! Какое расписание вам нужно сегодня?'
+        text = 'Привет! Какое расписание вы хотите посмотреть?'
         return await self.make_response(text, tts=text)
 
     def handle_local_intents(self, request: AliceRequest):
         return self.handle_global_intents(request)
 
+
+class GoodBye(BaseScene):
+    def __init__(self):
+
+        self.intents_dict = {
+            intents.EXIT: self.exit,
+        }
+
+    @property
+    def intents_handler(self) -> dict[str, Callable[[AliceRequest], Awaitable]]:
+        return self.intents_dict
+
+    async def reply(self, request: AliceRequest) -> dict[str, Any]:
+        intent = list(request.intents.keys())[0]
+        handler = self.intents_handler[intent]
+        return await handler(request)
+
+    async def exit(self, request: AliceRequest):
+        text = "До свидания, обращайтесь ко мне ещё!"
+        return await self.make_response(text, tts=text, exit=True)
+
+    def handle_local_intents(self, request: AliceRequest):
+        if set(request.intents) & set(intents.USER_STUDY_GROUP_INTENTS):
+            return self
+
+
 class Helper(BaseScene):
 
     async def reply(self, request: AliceRequest):
         text = "Я могу показать расписание твоей группы. Или, например, сказать количество пар сегодня"
-        return await self.make_response(text, tts=text)
+        return await self.make_response(text, tts=text, buttons=[
+            ReponseUtils.button('Расписание на сегодня', hide=True),
+            ReponseUtils.button('Расписание на завтра', hide=True),
+            ReponseUtils.button('Сколько пар сегодня', hide=True),
+            ReponseUtils.button('Расписание на понедельник', hide=True),
+            ReponseUtils.button('Изменить группу', hide=True)
+        ])
 
     def handle_local_intents(self, request: AliceRequest):
         return self.handle_global_intents(request)
@@ -131,7 +176,6 @@ class GroupManager(BaseScene):
             intents.CONFIRM: self.user_group_confirm,
             intents.REJECT: self.user_group_reject
         }
-        
 
     @property
     def intents_handler(self) -> dict[str, Callable[[AliceRequest], Awaitable]]:
@@ -141,11 +185,6 @@ class GroupManager(BaseScene):
         intent = list(request.intents.keys())[0]
         handler = self.intents_handler[intent]
         return await handler(request)
-
-    # async def __find_user_group(self, groups: list, user_group: str):
-    #     list_matchers = [difflib.SequenceMatcher(None, user_group.upper(), group) for group in groups]
-    #     list_matchers = [match.ratio() for match in list_matchers]
-    #     return groups[list_matchers.index(max(list_matchers))]
 
     async def __find_user_group(self, groups: list, user_group: str):
 
@@ -208,10 +247,16 @@ class GroupManager(BaseScene):
             }
 
             await update_user(user, request.db)
-                   
-       
-        text = f"Отлично, я запомнила, что вы из {user_group}"
-        return await self.make_response(text, tts=text)
+
+        text = f'Отлично, я запомнила, что вы из {user_group}. Для просмотра расписания скажите "Расписание на сегодня" или "Раписание на понедельник"\nДля просмотра помощи скажите "Помощь".\nЧтобы изменить группу скажите "Изменить группу"'
+        return await self.make_response(text, tts=text, buttons=[
+            ReponseUtils.button('Расписание на сегодня', hide=True),
+            ReponseUtils.button('Расписание на завтра', hide=True),
+            ReponseUtils.button('Сколько пар сегодня', hide=True),
+            ReponseUtils.button('Помощь', hide=True),
+            ReponseUtils.button('Что ты умеешь?', hide=True),
+            ReponseUtils.button('Изменить группу', hide=True),
+        ])
 
     async def user_group_reject(self, request: AliceRequest):
         self.user_group = ""
@@ -223,8 +268,12 @@ class GroupManager(BaseScene):
         group = request.command
         user_group = await self.__find_user_group(groups_json['groups'],  group)
         text = f"Ваша группа {user_group}, верно?"
-        return await self.make_response(text, tts=text, group=user_group)
-    
+
+        return await self.make_response(text, tts=text, group=user_group, buttons=[
+            ReponseUtils.button('Да', hide=True),
+            ReponseUtils.button('Нет', hide=True)
+        ])
+
     async def user_group_update(self, request: AliceRequest):
         text = "Хорошо, назовите новую группу и я её запомню"
         return await self.make_response(text, tts=text)
@@ -354,7 +403,7 @@ class Schedule(BaseScene):
             "лк": "Лекция",
             "пр": "Практика"
         }
-        
+
         for i in range(len(schedule['schedule'][day]['lessons'])):
 
             if len(schedule['schedule'][day]['lessons'][i]) > 0:
@@ -440,12 +489,11 @@ class Schedule(BaseScene):
             if request.user_id != '':
                 user_id = request.user_id
                 user = await get_user(user_id, request.get_db)
-            
+
             elif request.application_id != '':
                 user_id = request.application_id
                 user = await get_user(user_id, request.get_db)
-          
-    
+
             response_schedule_json = await self.get_schedule_request(request, group=user.group)
             parity = await self.__get_week_parity(datetime.strptime(schedule_date, "%d.%m.%Y"))
 
@@ -490,7 +538,7 @@ class Schedule(BaseScene):
         day = request.slots.get('when', '')
         text = None
         group = None
-            
+
         yandex_datetime = False
         yandex_day = None
 
@@ -535,7 +583,7 @@ class Schedule(BaseScene):
 
             else:
                 schedule_date = await self.__get_nearest_date(py_date)
-            
+
             if request.user_id != '':
                 user_id = request.user_id
                 user = await get_user(user_id, request.get_db)
@@ -543,7 +591,7 @@ class Schedule(BaseScene):
             elif request.application_id != '':
                 user_id = request.application_id
                 user = await get_user(user_id, request.get_db)
-            
+
             response_schedule_json = await self.get_schedule_request(request, group=user.group)
             parity = await self.__get_week_parity(datetime.strptime(schedule_date, "%d.%m.%Y"))
 
@@ -560,6 +608,7 @@ SCENES = {
     "helper": Helper,
     "welcome": Welcome,
     "welcome_default": WelcomeDefault,
+    "exit": GoodBye,
     "group": GroupManager,
     "schedule": Schedule
 }

@@ -21,3 +21,9 @@ SCHEDULE_INTENTS = [
     SCHEDULE_COUNT,
     SCHEDULE_LIST
 ]
+
+EXIT = 'exit_skill'
+
+EXIT_INTENTS = [
+    EXIT
+]

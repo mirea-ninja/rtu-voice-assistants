@@ -15,7 +15,7 @@ from src.core.yandex.state import STATE_REQUEST_KEY
 logger = logging.getLogger(__name__)
 
 
-class AliceVoiceAssistantService():
+class MarusaVoiceAssistantService():
     def __init__(self, session: ClientSession) -> None:
         self.session = session
 
@@ -39,9 +39,9 @@ class AliceVoiceAssistantService():
 
 
 @lru_cache()
-async def get_alice_voice_assistant_service(session: Awaitable[ClientSession] = Depends(get_session)) -> AliceVoiceAssistantService:
+async def get_alice_voice_assistant_service(session: Awaitable[ClientSession] = Depends(get_session)) -> MarusaVoiceAssistantService:
 
     if isinstance(session, collections.abc.Awaitable):
         session = await session
 
-    return AliceVoiceAssistantService(session=session)
+    return MarusaVoiceAssistantService(session=session)

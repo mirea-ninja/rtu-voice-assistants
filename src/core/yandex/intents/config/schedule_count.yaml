@@ -4,17 +4,13 @@ slots:
         type: DateTimeType
 
 root:
-    ($Amount)? (пар|уроков|занятий)? (в|во|на)? ($When)?;
+    $Amount (пар|уроков|занятий)? (в|во)? $When;
 
 $Amount:
     %lemma
-    расписание
     какие
     сколько
     количество
-    пары
-    уроки
-    занятия
 
 $When:
     $DateTimeType
