@@ -226,7 +226,7 @@ class GroupManager(BaseScene):
         return await self.make_response(text, tts=text, group=user_group)
     
     async def user_group_update(self, request: AliceRequest):
-        text = None
+        text = "Хорошо, назовите новую группу и я её запомню"
         return await self.make_response(text, tts=text)
 
     def handle_local_intents(self, request: AliceRequest):
@@ -350,21 +350,26 @@ class Schedule(BaseScene):
     async def __get_schedule_list(self, schedule: dict, group: str, day: str, date: str, even: bool) -> str:
         schedule_text = f"Расписание для группы {group} на {date}\n\n"
 
+        lesson_type = {
+            "лк": "Лекция",
+            "пр": "Практика"
+        }
+        
         for i in range(len(schedule['schedule'][day]['lessons'])):
 
             if len(schedule['schedule'][day]['lessons'][i]) > 0:
 
                 if len(schedule['schedule'][day]['lessons'][i]) >= 2:
                     if even:
-                        schedule_text += f"{i + 1}-ая пара. {schedule['schedule'][day]['lessons'][i][1]['name']}\n"
+                        schedule_text += f"{i + 1}-ая пара. {schedule['schedule'][day]['lessons'][i][1]['name']}. {lesson_type[schedule['schedule'][day]['lessons'][i][1]['types']]}.\n"
                     else:
-                        schedule_text += f"{i + 1}-ая пара. {schedule['schedule'][day]['lessons'][i][0]['name']}\n"
+                        schedule_text += f"{i + 1}-ая пара. {schedule['schedule'][day]['lessons'][i][0]['name']}. {lesson_type[schedule['schedule'][day]['lessons'][i][0]['types']]}.\n"
 
                 elif len(schedule['schedule'][day]['lessons'][i]) == 1:
                     lesson_weeks_odd = await self.__check_odd_array(schedule['schedule'][day]['lessons'][i][0]['weeks'])
 
                     if even and not lesson_weeks_odd:
-                        schedule_text += f"{i + 1}-ая пара. {schedule['schedule'][day]['lessons'][i][0]['name']}\n"
+                        schedule_text += f"{i + 1}-ая пара. {schedule['schedule'][day]['lessons'][i][0]['name']}. {lesson_type[schedule['schedule'][day]['lessons'][i][0]['types']]}.\n"
 
         if schedule_text == f"Расписание для группы {group} на {date}\n\n":
             return "Пар нет! Отдыхайте!"
