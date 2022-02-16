@@ -50,7 +50,8 @@ class AliceVoiceAssistantService(VoiceAssistantServiceBase):
 
                     user = {
                         "user_id": user_id,
-                        "group": ""
+                        "group": "",
+                        "platform": "YANDEX"
                     }
 
                     await create_user(user, self.db)
@@ -64,7 +65,8 @@ class AliceVoiceAssistantService(VoiceAssistantServiceBase):
                 else:
                     user = {
                         "user_id": user_id,
-                        "group": ""
+                        "group": "",
+                        "platform": "YANDEX"
                     }
 
                     await create_user(user, self.db)

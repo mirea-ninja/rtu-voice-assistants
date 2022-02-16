@@ -1,3 +1,4 @@
+from platform import platform
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy.ext.declarative import declarative_base
@@ -26,4 +27,5 @@ class User(Base):
     id = Column(Integer, primary_key=True)
     user_id = Column(String(128))
     group = Column(String(10))
+    platform = Column(String(128))
 

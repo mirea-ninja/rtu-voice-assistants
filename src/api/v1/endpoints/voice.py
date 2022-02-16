@@ -6,12 +6,14 @@ from typing import Awaitable
 from fastapi import APIRouter, Depends
 from fastapi.responses import ORJSONResponse
 from starlette.status import HTTP_200_OK
-from starlette.requests  import Request
+from starlette.requests import Request
 
 from src.services.yandex import alice
+from src.services.vk import marusia
 
 router = APIRouter()
 logger = logging.getLogger(__name__)
+
 
 @router.post(
     "/alice",
@@ -27,27 +29,21 @@ async def alice_webhook(request: Request,  service: Awaitable[alice.AliceVoiceAs
 
     return ORJSONResponse(content=response)
 
+
 @router.post(
-    "/marusa",
-    tags=["Marusa"],
+    "/marusia",
+    tags=["Marusia"],
     status_code=HTTP_200_OK,
 )
-async def marusa_webhook(request: Request) -> ORJSONResponse:
+async def marusia_webhook(request: Request,  service: Awaitable[marusia.MarusaVoiceAssistantService] = Depends(marusia.get_marusa_voice_assistant_service)) -> ORJSONResponse:
 
-    response = await request.json()
-    derived_session_fields = ['session_id', 'user_id', 'message_id']
-    response_message = {
-        "response": {
-            "text": response['request']['original_utterance'],
-            "tts": "Здарова атец",
-            "end_session": False
-        },
-        "session": {derived_key: response['session'][derived_key] for derived_key in derived_session_fields},
-        "version": response['version']
-    }
+    if isinstance(service, collections.abc.Awaitable):
+        service = await service
+    logger.info(await request.json())
+    response = await service.parse_request_and_routing(request=request)
 
-    return response_message
-    
+    return ORJSONResponse(content=response)
+
 
 @router.post(
     "/sber",

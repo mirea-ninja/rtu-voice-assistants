@@ -6,11 +6,11 @@ from typing import Any, Awaitable, Callable, Optional
 from abc import ABC, abstractmethod
 from datetime import datetime, timedelta, date
 
-from src.assistants.yandex.request import AliceRequest
+from src.assistants.vk.request import MarusiaRequest
 
 from src.core.config import SCHEDULE_API_URL
-from src.core.yandex import intents
-from src.core.yandex.state import STATE_RESPONSE_KEY
+from src.core.vk import intents
+from src.core.vk.state import STATE_RESPONSE_KEY
 
 from src.crud.user import get_user, update_user
 
@@ -30,13 +30,13 @@ class BaseScene(ABC):
     async def reply(self, request):
         ...
 
-    def move(self, request: AliceRequest):
+    def move(self, request: MarusiaRequest):
         next_scene = self.handle_local_intents(request)
         if next_scene is None:
             next_scene = self.handle_global_intents(request)
         return next_scene
 
-    def handle_global_intents(self, request: AliceRequest):
+    def handle_global_intents(self, request: MarusiaRequest):
         intents_set = set(request.intents)
 
         if intents.HELP in request.intents or intents.WHAT_CAN_YOU_DO in request.intents:
@@ -51,17 +51,17 @@ class BaseScene(ABC):
         if intents_set & set(intents.EXIT_INTENTS):
             return GoodBye()
 
-    async def handle_local_intents(self, request: AliceRequest) -> Optional[str]:
+    async def handle_local_intents(self, request: MarusiaRequest) -> Optional[str]:
         ...
 
-    async def fallback(self, request: AliceRequest):
+    async def fallback(self, request: MarusiaRequest):
         text = 'Не понимаю. Попробуйте сформулировать иначе. Скажите "Помощь" или "Что ты умеешь" и я помогу'
 
         logger.error(f'incomprehensible intent: {request.original_utterance}')
 
         return await self.make_response(text, tts=text)
 
-    async def make_response(self, text, tts=None, buttons=None, state=None, group=None, exit=False):
+    async def make_response(self, text, request: MarusiaRequest, tts=None, buttons=None, state=None, group=None, exit=False):
 
         if len(text) > 1024:
             text = text[:1024]
@@ -79,27 +79,32 @@ class BaseScene(ABC):
 
         if exit:
             response['end_session'] = True
+        else:
+            response['end_session'] = False
+
+        derived_session_fields = ['session_id', 'user_id', 'message_id']
 
         webhook_response = {
             'response': response,
-            'version': "1.0",
+            'version': request['version'],
+            "session": {derived_key: request['session'][derived_key] for derived_key in derived_session_fields},
             STATE_RESPONSE_KEY: {
                 'scene': self.id(),
                 'group': group
             },
         }
-
+   
         if state is not None:
             webhook_response[STATE_RESPONSE_KEY].update(state)
 
         return webhook_response
 
-    async def get_schedule_request(self, request: AliceRequest, group: str = 10):
+    async def get_schedule_request(self, request: MarusiaRequest, group: str = 10):
 
         async with request.session.get(url=f"{SCHEDULE_API_URL}/{group}/full_schedule") as response:
             return await response.json()
 
-    async def get_groups_request(self, request: AliceRequest):
+    async def get_groups_request(self, request: MarusiaRequest):
 
         async with request.session.get(url=f"{SCHEDULE_API_URL}/groups") as response:
             return await response.json()
@@ -107,21 +112,21 @@ class BaseScene(ABC):
 
 class Welcome(BaseScene):
 
-    async def reply(self, request: AliceRequest):
+    async def reply(self, request: MarusiaRequest):
         text = 'Привет! Теперь я умею показывать расписание РТУ МИРЭА. Для начала скажите мне свою группу.'
-        return await self.make_response(text, tts=text)
+        return await self.make_response(text, tts=text, request=request)
 
-    def handle_local_intents(self, request: AliceRequest):
+    def handle_local_intents(self, request: MarusiaRequest):
         return self.handle_global_intents(request)
 
 
 class WelcomeDefault(BaseScene):
 
-    async def reply(self, request: AliceRequest):
+    async def reply(self, request: MarusiaRequest):
         text = 'Привет! Какое расписание вы хотите посмотреть?'
         return await self.make_response(text, tts=text)
 
-    def handle_local_intents(self, request: AliceRequest):
+    def handle_local_intents(self, request: MarusiaRequest):
         return self.handle_global_intents(request)
 
 
@@ -133,26 +138,26 @@ class GoodBye(BaseScene):
         }
 
     @property
-    def intents_handler(self) -> dict[str, Callable[[AliceRequest], Awaitable]]:
+    def intents_handler(self) -> dict[str, Callable[[MarusiaRequest], Awaitable]]:
         return self.intents_dict
 
-    async def reply(self, request: AliceRequest) -> dict[str, Any]:
+    async def reply(self, request: MarusiaRequest) -> dict[str, Any]:
         intent = list(request.intents.keys())[0]
         handler = self.intents_handler[intent]
         return await handler(request)
 
-    async def exit(self, request: AliceRequest):
+    async def exit(self, request: MarusiaRequest):
         text = "До свидания, обращайтесь ко мне ещё!"
         return await self.make_response(text, tts=text, exit=True)
 
-    def handle_local_intents(self, request: AliceRequest):
+    def handle_local_intents(self, request: MarusiaRequest):
         if set(request.intents) & set(intents.USER_STUDY_GROUP_INTENTS):
             return self
 
 
 class Helper(BaseScene):
 
-    async def reply(self, request: AliceRequest):
+    async def reply(self, request: MarusiaRequest):
         text = "Я могу показать расписание твоей группы. Или, например, сказать количество пар сегодня"
         return await self.make_response(text, tts=text, buttons=[
             ReponseUtils.button('Расписание на сегодня', hide=True),
@@ -162,7 +167,7 @@ class Helper(BaseScene):
             ReponseUtils.button('Изменить группу', hide=True)
         ])
 
-    def handle_local_intents(self, request: AliceRequest):
+    def handle_local_intents(self, request: MarusiaRequest):
         return self.handle_global_intents(request)
 
 
@@ -178,10 +183,10 @@ class GroupManager(BaseScene):
         }
 
     @property
-    def intents_handler(self) -> dict[str, Callable[[AliceRequest], Awaitable]]:
+    def intents_handler(self) -> dict[str, Callable[[MarusiaRequest], Awaitable]]:
         return self.intents_dict
 
-    async def reply(self, request: AliceRequest) -> dict[str, Any]:
+    async def reply(self, request: MarusiaRequest) -> dict[str, Any]:
         intent = list(request.intents.keys())[0]
         handler = self.intents_handler[intent]
         return await handler(request)
@@ -227,7 +232,7 @@ class GroupManager(BaseScene):
             list_matchers = [match.ratio() for match in list_matchers]
             return groups[list_matchers.index(max(list_matchers))]
 
-    async def user_group_confirm(self, request: AliceRequest):
+    async def user_group_confirm(self, request: MarusiaRequest):
         user_group = request.get_group
 
         if request.user_id != '':
@@ -258,12 +263,12 @@ class GroupManager(BaseScene):
             ReponseUtils.button('Изменить группу', hide=True),
         ])
 
-    async def user_group_reject(self, request: AliceRequest):
+    async def user_group_reject(self, request: MarusiaRequest):
         self.user_group = ""
         text = f"Давайте попробуем еще раз. Назовите вашу группу"
         return await self.make_response(text, tts=text)
 
-    async def user_group_set(self, request: AliceRequest):
+    async def user_group_set(self, request: MarusiaRequest):
         groups_json = await self.get_groups_request(request)
         group = request.command
         user_group = await self.__find_user_group(groups_json['groups'],  group)
@@ -274,11 +279,11 @@ class GroupManager(BaseScene):
             ReponseUtils.button('Нет', hide=True)
         ])
 
-    async def user_group_update(self, request: AliceRequest):
+    async def user_group_update(self, request: MarusiaRequest):
         text = "Хорошо, назовите новую группу и я её запомню"
         return await self.make_response(text, tts=text)
 
-    def handle_local_intents(self, request: AliceRequest):
+    def handle_local_intents(self, request: MarusiaRequest):
         if set(request.intents) & set(intents.USER_STUDY_GROUP_INTENTS):
             return self
 
@@ -291,10 +296,10 @@ class Schedule(BaseScene):
         }
 
     @property
-    def intents_handler(self) -> dict[str, Callable[[AliceRequest], Awaitable]]:
+    def intents_handler(self) -> dict[str, Callable[[MarusiaRequest], Awaitable]]:
         return self.intents_dict
 
-    async def reply(self, request: AliceRequest) -> dict[str, Any]:
+    async def reply(self, request: MarusiaRequest) -> dict[str, Any]:
         intent = list(request.intents.keys())[0]
         handler = self.intents_handler[intent]
         return await handler(request)
@@ -434,7 +439,7 @@ class Schedule(BaseScene):
 
         return (date_today + timedelta(days_ahead)).strftime("%d.%m.%Y")
 
-    async def schedule_info_count(self, request: AliceRequest):
+    async def schedule_info_count(self, request: MarusiaRequest):
         # TODO: REFACTOR
 
         day = request.slots.get('when', '')
@@ -532,7 +537,7 @@ class Schedule(BaseScene):
 
         return await self.make_response(text, tts=text)
 
-    async def schedule_info_list(self, request: AliceRequest):
+    async def schedule_info_list(self, request: MarusiaRequest):
         # TODO: REFACTOR
 
         day = request.slots.get('when', '')
@@ -599,7 +604,7 @@ class Schedule(BaseScene):
 
         return await self.make_response(text, tts=text)
 
-    def handle_local_intents(self, request: AliceRequest):
+    def handle_local_intents(self, request: MarusiaRequest):
         if set(request.intents) & set(intents.SCHEDULE_INTENTS):
             return self
 
