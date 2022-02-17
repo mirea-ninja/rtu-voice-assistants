@@ -23,11 +23,11 @@ class SberRequest():
 
     @property
     def user_id(self):
-        return self.request_body['session'].get('user', {}).get('user_id', '')
+        return self.request_body['uuid'].get('userId', '')
     
     @property
-    def application_id(self):
-        return self.request_body['session'].get('application', {}).get('application_id', '')
+    def sub(self):
+        return self.request_body['uuid'].get('sub', '')
 
     @property
     def intents(self):
@@ -54,8 +54,8 @@ class SberRequest():
         return result
 
     @property
-    def original_utterance(self):
-        return self.request_body.get('request', {}).get('original_utterance')
+    def original_text(self):
+        return self.request_body.get('payload', {}).get('message', {}).get('original_text')
     
     @property
     def command(self):
@@ -64,3 +64,7 @@ class SberRequest():
     @property
     def get_group(self):
         return self.request_body.get('state', {}).get(STATE_REQUEST_KEY, {}).get('group')
+    
+    @property
+    def intent(self):
+        return self.request_body['payload'].get('intent', '')

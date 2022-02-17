@@ -36,42 +36,40 @@ class SberVoiceAssistantService(VoiceAssistantServiceBase):
         event = await request.json()
 
         request = SberRequest(request_body=event, session=self.session, db=self.db)
-        # current_scene_id = event.get('state', {}).get(
-        #     STATE_REQUEST_KEY, {}).get('scene')
-        
-        current_scene_id = None
-        if current_scene_id is None:
-            return await Welcome().reply(request)    
-            # if request.user_id != '':
-            #     user_id = request.user_id
+        current_scene_id = event.get('payload', {}).get('intent')
 
-            #     if await get_user(user_id, self.db) != None:
-            #         return await WelcomeDefault().reply(request)
-            #     else:
+        if current_scene_id is None or current_scene_id == "run_app":
 
-            #         user = {
-            #             "user_id": user_id,
-            #             "group": "",
-            #             "platform": "YANDEX"
-            #         }
+            if request.sub != '':
+                user_id = request.sub
 
-            #         await create_user(user, self.db)
-            #         return await Welcome().reply(request)
+                if await get_user(user_id, self.db) != None:
+                    return await WelcomeDefault().reply(request)
+                else:
 
-            # elif request.application_id != '':
-            #     user_id = request.application_id
+                    user = {
+                        "user_id": user_id, 
+                        "group": "",
+                        "platform": "SBER"
+                    }
 
-            #     if await get_user(user_id, self.db) != None:
-            #         return await WelcomeDefault().reply(request)
-            #     else:
-            #         user = {
-            #             "user_id": user_id,
-            #             "group": "",
-            #             "platform": "YANDEX"
-            #         }
+                    await create_user(user, self.db)
+                    return await Welcome().reply(request)
 
-            #         await create_user(user, self.db)
-            #         return await Welcome().reply(request)
+            elif request.user_id != '':
+                user_id = request.user_id
+
+                if await get_user(user_id, self.db) != None:
+                    return await WelcomeDefault().reply(request)
+                else:
+                    user = {
+                        "user_id": user_id,
+                        "group": "",
+                        "platform": "SBER"
+                    }
+
+                    await create_user(user, self.db)
+                    return await Welcome().reply(request)
                     
         current_scene = SCENES.get(current_scene_id, Welcome)()
         next_scene = current_scene.move(request)

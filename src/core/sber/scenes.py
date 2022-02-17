@@ -37,9 +37,9 @@ class BaseScene(ABC):
         return next_scene
 
     def handle_global_intents(self, request: SberRequest):
-        intents_set = set(request.intents)
+        intents_set = set(request.intent)
 
-        if intents.HELP in request.intents or intents.WHAT_CAN_YOU_DO in request.intents:
+        if intents.HELP in request.intent or intents.WHAT_CAN_YOU_DO in request.intent:
             return Helper()
 
         if intents_set & set(intents.SCHEDULE_INTENTS):
@@ -57,11 +57,11 @@ class BaseScene(ABC):
     async def fallback(self, request: SberRequest):
         text = 'Не понимаю. Попробуйте сформулировать иначе. Скажите "Помощь" или "Что ты умеешь" и я помогу'
 
-        logger.error(f'incomprehensible intent: {request.original_utterance}')
+        logger.error(f'incomprehensible intent: {request.original_text}')
 
-        return await self.make_response(text, tts=text)
+        return await self.make_response(text, tts=text, request=request, emotion="zadumalsa")
 
-    async def make_response(self, text, request: SberRequest, tts=None, buttons=None, state=None, group=None, intent=None, emotion=None):
+    async def make_response(self, text, request: SberRequest, tts=None, buttons=None, state=None, group=None, emotion=None, auto_listening=False):
 
         if len(text) > 1024:
             text = text[:1024]
@@ -78,18 +78,15 @@ class BaseScene(ABC):
                     }
                 }
             ],
-            "projectName": request['payload']['projectName'],
+            'intent': self.id(),
+            'projectName': request['payload']['projectName'],
+            'auto_listening': auto_listening,
             'device': request['payload']['device']
         }
        
         if buttons is not None:
             response['suggestions'] = {
                 'buttons': buttons
-            }
-
-        if intent is not None:
-            response['intent'] = {
-                'emotionId': emotion
             }
 
         if emotion is not None:
@@ -142,7 +139,7 @@ class WelcomeDefault(BaseScene):
 
     async def reply(self, request: SberRequest):
         text = 'Привет! Какое расписание вы хотите посмотреть?'
-        return await self.make_response(text, tts=text)
+        return await self.make_response(text, tts=text, request=request, emotion="zainteresovannost")
 
     def handle_local_intents(self, request: SberRequest):
         return self.handle_global_intents(request)

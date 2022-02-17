@@ -1,37 +1,37 @@
 version: '3.9'
 
 services:
-  backend:
-    build:
-      context: ./src
-      dockerfile: Dockerfile
-    environment:
-      SCHEDULE_API_URL: ${DATABASE_NAME}
+  # backend:
+  #   build:
+  #     context: ./src
+  #     dockerfile: Dockerfile
+  #   environment:
+  #     SCHEDULE_API_URL: ${DATABASE_NAME}
 
-      DATABASE_HOST: ${DATABASE_HOST}
-      DATABASE_NAME: ${DATABASE_NAME}
-      DATABASE_USER: ${DATABASE_USER}
-      DATABASE_PASSWORD: ${DATABASE_PASSWORD}
-      DATABASE_PORT: ${DATABASE_PORT}
+  #     DATABASE_HOST: ${DATABASE_HOST}
+  #     DATABASE_NAME: ${DATABASE_NAME}
+  #     DATABASE_USER: ${DATABASE_USER}
+  #     DATABASE_PASSWORD: ${DATABASE_PASSWORD}
+  #     DATABASE_PORT: ${DATABASE_PORT}
 
-      VK_API_KEY: ${VK_API_KEY}
-      SBER_API_KEY: ${SBER_API_KEY}
+  #     VK_API_KEY: ${VK_API_KEY}
+  #     SBER_API_KEY: ${SBER_API_KEY}
 
-    ports:
-      - '5001:5001'
-    volumes:
-      - ./:/main
-    command:
-      [
-        "uvicorn",
-        "src.app:app",
-        "--host",
-        "0.0.0.0",
-        "--port",
-        "5001"
-      ]
-    restart: always
-    container_name: voice-helper-server
+  #   ports:
+  #     - '5001:5001'
+  #   volumes:
+  #     - ./:/main
+  #   command:
+  #     [
+  #       "uvicorn",
+  #       "src.app:app",
+  #       "--host",
+  #       "0.0.0.0",
+  #       "--port",
+  #       "5001"
+  #     ]
+  #   restart: always
+  #   container_name: voice-helper-server
 
   database:
     image: postgres:12.2-alpine

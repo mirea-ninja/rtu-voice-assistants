@@ -25,7 +25,7 @@ def init_db():
 class User(Base):
     __tablename__ = "user"
     id = Column(Integer, primary_key=True)
-    user_id = Column(String(128))
+    user_id = Column(String(512))
     group = Column(String(10))
-    platform = Column(String(128))
+    platform = Column(String(512))
 
