@@ -10,6 +10,7 @@ from starlette.requests import Request
 
 from src.services.yandex import alice
 from src.services.vk import marusia
+from src.services.sber import sber
 
 router = APIRouter()
 logger = logging.getLogger(__name__)
@@ -50,6 +51,11 @@ async def marusia_webhook(request: Request,  service: Awaitable[marusia.MarusaVo
     tags=["Sber"],
     status_code=HTTP_200_OK,
 )
-async def sber_webhook(request: Request) -> ORJSONResponse:
+async def sber_webhook(request: Request,  service: Awaitable[sber.SberVoiceAssistantService] = Depends(sber.get_sber_voice_assistant_service)) -> ORJSONResponse:
 
-    return ORJSONResponse(content={"message": "Not implemented"})
+    if isinstance(service, collections.abc.Awaitable):
+        service = await service
+    logger.info(await request.json())
+    response = await service.parse_request_and_routing(request=request)
+
+    return ORJSONResponse(content=response)

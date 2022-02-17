@@ -1,0 +1,10 @@
+slots:
+    group:
+        source: $Group
+        type: GroupType
+
+root:
+    $Group ($YANDEX.NUMBER) ($YANDEX.NUMBER)?
+
+$Group:
+    .+
