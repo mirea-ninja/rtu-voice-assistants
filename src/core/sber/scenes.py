@@ -61,41 +61,8 @@ class BaseScene(ABC):
 
         return await self.make_response(text, tts=text)
 
-    async def make_response(self, text, request: SberRequest, tts=None, buttons=None, state=None, group=None, exit=False):
+    async def make_response(self, text, request: SberRequest, tts=None, buttons=None, state=None, group=None, intent=None, emotion=None):
 
-        # {
-        #     "pronounceText": "Привет! Чем я могу помочь?",
-        #     "emotion": {
-        #         "emotionId": "oups"
-        #     },
-        #     "items": [
-        #         {
-        #             "card": {}
-        #         },
-        #         {
-        #             "bubble": {
-        #                 "text": "Привет!"
-        #             }
-        #         }
-        #     ],
-        #     "intent": "hi",
-        #     "projectName": "hello",
-        #     "device": {
-        #         "platformType": "android",
-        #         "platformVersion": "1.0.2",
-        #         "surface": "SBOL",
-        #         "surfaceVersion": "1.0.2",
-        #         "features": {
-        #             "appTypes": ["DIALOG", "WEB_APP"]
-        #         },
-        #         "capabilities": {
-        #             "screen": { "available": true },
-        #             "mic": { "available": true },
-        #             "speak": { "available": true }
-        #         },
-        #         "additionalInfo": {}
-        #     }
-        # }     
         if len(text) > 1024:
             text = text[:1024]
 
@@ -111,31 +78,24 @@ class BaseScene(ABC):
                     }
                 }
             ],
-            # "emotion": {
-            #     "emotionId": "oups"
-            # },
-            # "intent": "Test",
             "projectName": request['payload']['projectName'],
             'device': request['payload']['device']
         }
        
-        # if buttons is not None:
-        #     response['buttons'] = buttons
+        if buttons is not None:
+            response['suggestions'] = {
+                'buttons': buttons
+            }
 
-        # if exit:
-        #     response['end_session'] = True
+        if intent is not None:
+            response['intent'] = {
+                'emotionId': emotion
+            }
 
-        # {
-        # "messageName": "ANSWER_TO_USER",
-        # "sessionId": "86024848-c12b-4056-b58b-93c69b412314",
-        # "messageId": 0,
-        # "uuid": {
-        #     "userChannel": "B2C",
-        #     "sub": "d2d6da62-6bdd-452b-b5dd-a145090075ba",
-        #     "userId": "123"
-        # },
-        # "payload": {...}
-        # }
+        if emotion is not None:
+            response['emotion'] = {
+                'emotionId': emotion
+            }
 
         webhook_response = {
             'messageName': 'ANSWER_TO_USER',
@@ -172,7 +132,7 @@ class Welcome(BaseScene):
 
     async def reply(self, request: SberRequest):
         text = 'Привет! Теперь я умею показывать расписание РТУ МИРЭА. Для начала скажите мне свою группу.'
-        return await self.make_response(text, tts=text, request=request)
+        return await self.make_response(text, tts=text, request=request, emotion="zainteresovannost")
 
     def handle_local_intents(self, request: SberRequest):
         return self.handle_global_intents(request)
