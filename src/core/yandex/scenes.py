@@ -119,8 +119,14 @@ class WelcomeDefault(BaseScene):
 
     async def reply(self, request: AliceRequest):
         text = 'Привет! Какое расписание вы хотите посмотреть?'
-        return await self.make_response(text, tts=text)
-
+        return await self.make_response(text, tts=text, buttons=[
+            ReponseUtils.button('Расписание на сегодня', hide=True),
+            ReponseUtils.button('Расписание на завтра', hide=True),
+            ReponseUtils.button('Сколько пар сегодня', hide=True),
+            ReponseUtils.button('Расписание на понедельник', hide=True),
+            ReponseUtils.button('Изменить группу', hide=True)
+        ])
+        
     def handle_local_intents(self, request: AliceRequest):
         return self.handle_global_intents(request)
 

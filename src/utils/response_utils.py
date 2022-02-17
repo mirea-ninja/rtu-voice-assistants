@@ -15,15 +15,17 @@ class ReponseUtils:
         return button
     
     @staticmethod
-    def button_sber(title: str, action: str=None, actions: list=None):
+    def button_sber(title: str, action: str=None):
         button = {
             'title': title,
         }
 
         if action is not None:
-            button['action'] = action
-
-        if actions is not None:
-            button['actions'] = actions
+            button['actions'] = [
+                {
+                    "text": title,
+                    "type": "text"
+                }
+            ]
 
         return button

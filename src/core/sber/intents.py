@@ -1,4 +1,6 @@
-HELP = 'YANDEX.HELP'
+# TODO: Add all intents for Sber
+
+HELP = ['помощь', 'что ты умеешь']
 WHAT_CAN_YOU_DO = 'YANDEX.WHAT_CAN_YOU_DO'
 
 CONFIRM = 'YANDEX.CONFIRM'

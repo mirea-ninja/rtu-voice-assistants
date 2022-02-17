@@ -139,7 +139,13 @@ class WelcomeDefault(BaseScene):
 
     async def reply(self, request: SberRequest):
         text = 'Привет! Какое расписание вы хотите посмотреть?'
-        return await self.make_response(text, tts=text, request=request, emotion="zainteresovannost")
+        return await self.make_response(text, tts=text, request=request, emotion="zainteresovannost", buttons=[
+            ReponseUtils.button_sber(title = 'Расписание на сегодня', action = 'Расписание на сегодня'),
+            ReponseUtils.button_sber(title = 'Расписание на завтра', action = 'Расписание на завтра'),
+            ReponseUtils.button_sber(title = 'Сколько пар сегодня', action = 'Сколько пар сегодня'),
+            ReponseUtils.button_sber(title = 'Расписание на понедельник', action = 'Расписание на понедельник'),
+            ReponseUtils.button_sber(title = 'Изменить группу', action = 'Изменить группу')
+        ])
 
     def handle_local_intents(self, request: SberRequest):
         return self.handle_global_intents(request)
