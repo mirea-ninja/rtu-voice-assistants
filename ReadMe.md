@@ -15,6 +15,6 @@
 
 # Примите участие
 Это приложение и все относящиеся к нему сервисы являются **100% бесплатными** и **Open Source** продуктами. Мы с огромным удовольствием примем любые ваши предложения и сообщения, а также мы рады любому вашему участию в проекте! Перед тем как принять участие в развитии проекта:
-1. Ознакомьтесь с нашим [CONTRIBUTING.MD](https://github.com/Ninja-Official/rtu-voice-assistants/blob/master/CONTRIBUTING.md), в котором описано то, как должны вести себя участники проекта.
-2. Уважайте других участников, обсуждайте идеи, а не личности, ознакомьтесь с [кодексом поведения](https://github.com/Ninja-Official/rtu-voice-assistants/blob/master/CODE_OF_CONDUCT.md).
+1. Ознакомьтесь с нашим [CONTRIBUTING.MD](https://github.com/Ninja-Official/rtu-voice-assistants/blob/main/CONTRIBUTING.md), в котором описано то, как должны вести себя участники проекта.
+2. Уважайте других участников, обсуждайте идеи, а не личности, ознакомьтесь с [кодексом поведения](https://github.com/Ninja-Official/rtu-voice-assistants/blob/main/CODE_OF_CONDUCT.md).
 3. Не знаете, над чем вы хотите работать? Ознакомьтесь с нашей [дорожной картой](https://github.com/Ninja-Official/rtu-voice-assistants/projects/1).
