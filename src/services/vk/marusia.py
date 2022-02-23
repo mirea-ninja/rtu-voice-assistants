@@ -9,15 +9,15 @@ from typing import Any, Awaitable
 from fastapi import Depends
 from starlette.requests import Request
 
-from src.assistants.vk.request import MarusiaRequest
+from ...assistants.vk.request import MarusiaRequest
 
-from src.core.session import get_session
-from src.core.vk.scenes import Welcome, SCENES, WelcomeDefault
-from src.core.vk.state import STATE_REQUEST_KEY
+from ...core.session import get_session
+from ...core.vk.scenes import Welcome, SCENES, WelcomeDefault
+from ...core.vk.state import STATE_REQUEST_KEY
 
-from src.crud.user import create_user, get_user
+from ...crud.user import create_user, get_user
 
-from src.database.database import get_db, Session
+from ...database.database import get_db, Session
 
 logger = logging.getLogger(__name__)
 

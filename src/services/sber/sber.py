@@ -9,12 +9,12 @@ from fastapi import Depends
 from typing import Union, Any, Awaitable
 from starlette.requests import Request
 
-from src.core.session import get_session
-from src.assistants.sber.request import SberRequest
-from src.core.sber.scenes import Welcome, SCENES, WelcomeDefault
-from src.core.sber.state import STATE_REQUEST_KEY
-from src.crud.user import create_user, get_user
-from src.database.database import get_db, Session
+from ...core.session import get_session
+from ...assistants.sber.request import SberRequest
+from ...core.sber.scenes import Welcome, SCENES, WelcomeDefault
+from ...core.sber.state import STATE_REQUEST_KEY
+from ...crud.user import create_user, get_user
+from ...database.database import get_db, Session
 
 logger = logging.getLogger(__name__)
 

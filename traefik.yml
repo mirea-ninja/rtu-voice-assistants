@@ -1,0 +1,23 @@
+providers:
+  docker: true
+  file:
+    filename: /etc/traefik/dynamic_conf.yml
+
+entrypoints:
+  web:
+    address: :80
+    http:
+      redirections:
+        entrypoint:
+          to: websecure
+          scheme: https
+  websecure:
+    address: :443
+
+certificatesresolvers:
+  ninjaresolver:
+    acme:
+      dnsChallenge:
+        provider: digitalocean 
+      email: admin@mirea.ninja
+      storage: /etc/traefik/acme.json

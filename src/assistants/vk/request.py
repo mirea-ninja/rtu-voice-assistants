@@ -3,8 +3,8 @@ import logging
 from typing import Any
 from aiohttp import ClientSession
 
-from src.database.database import Session
-from src.core.yandex.state import STATE_REQUEST_KEY
+from ...database.database import Session
+from ...core.yandex.state import STATE_REQUEST_KEY
 
 logger = logging.getLogger(__name__)
 

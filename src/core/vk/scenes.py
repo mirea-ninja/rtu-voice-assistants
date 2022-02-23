@@ -6,16 +6,16 @@ from typing import Any, Awaitable, Callable, Optional
 from abc import ABC, abstractmethod
 from datetime import datetime, timedelta, date
 
-from src.assistants.vk.request import MarusiaRequest
+from ...assistants.vk.request import MarusiaRequest
 
-from src.core.config import SCHEDULE_API_URL
-from src.core.vk import intents
-from src.core.vk.state import STATE_RESPONSE_KEY
+from ...core.config import SCHEDULE_API_URL
+from ...core.vk import intents
+from ...core.vk.state import STATE_RESPONSE_KEY
 
-from src.crud.user import get_user, update_user
+from ...crud.user import get_user, update_user
 
-from src.utils.schedule_utils import ScheduleUtils
-from src.utils.response_utils import ReponseUtils
+from ...utils.schedule_utils import ScheduleUtils
+from ...utils.response_utils import ReponseUtils
 
 logger = logging.getLogger(__name__)
 

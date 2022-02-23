@@ -8,9 +8,9 @@ from fastapi.responses import ORJSONResponse
 from starlette.status import HTTP_200_OK
 from starlette.requests import Request
 
-from src.services.yandex import alice
-from src.services.vk import marusia
-from src.services.sber import sber
+from ....services.yandex import alice
+from ....services.vk import marusia
+from ....services.sber import sber
 
 router = APIRouter()
 logger = logging.getLogger(__name__)

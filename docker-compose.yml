@@ -1,39 +1,45 @@
 version: '3.9'
 
 services:
-  # backend:
-  #   build:
-  #     context: ./src
-  #     dockerfile: Dockerfile
-  #   environment:
-  #     SCHEDULE_API_URL: ${DATABASE_NAME}
+  backend:
+    container_name: assistants-server
+    build:
+      context: ./src
+      dockerfile: Dockerfile
+    environment:
+      SCHEDULE_API_URL: ${DATABASE_NAME}
+      DATABASE_HOST: ${DATABASE_HOST}
+      DATABASE_NAME: ${DATABASE_NAME}
+      DATABASE_USER: ${DATABASE_USER}
+      DATABASE_PASSWORD: ${DATABASE_PASSWORD}
+      DATABASE_PORT: ${DATABASE_PORT}
+      VK_API_KEY: ${VK_API_KEY}
+    depends_on:
+      - database
+    restart: always
+    labels:
+      - traefik.enable=true
+      - traefik.http.routers.backend.rule=Host(`assistants.mirea.ninja`)
+      - traefik.http.routers.backend.tls=true
+      - traefik.http.routers.backend.tls.certresolver=ninjaresolver
 
-  #     DATABASE_HOST: ${DATABASE_HOST}
-  #     DATABASE_NAME: ${DATABASE_NAME}
-  #     DATABASE_USER: ${DATABASE_USER}
-  #     DATABASE_PASSWORD: ${DATABASE_PASSWORD}
-  #     DATABASE_PORT: ${DATABASE_PORT}
 
-  #     VK_API_KEY: ${VK_API_KEY}
-  #     SBER_API_KEY: ${SBER_API_KEY}
+  proxy:
+    container_name: assistants-proxy
+    image: traefik:latest
+    ports:
+      - 80:80
+      - 443:443
+    environment:
+      DO_AUTH_TOKEN:  ${DO_AUTH_TOKEN}
+    restart: always
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+      - ./:/etc/traefik
 
-  #   ports:
-  #     - '5001:5001'
-  #   volumes:
-  #     - ./:/main
-  #   command:
-  #     [
-  #       "uvicorn",
-  #       "src.app:app",
-  #       "--host",
-  #       "0.0.0.0",
-  #       "--port",
-  #       "5001"
-  #     ]
-  #   restart: always
-  #   container_name: voice-helper-server
 
   database:
+    container_name: assistants-database
     image: postgres:12.2-alpine
     environment:
       POSTGRES_DB: ${DATABASE_NAME}
@@ -46,17 +52,12 @@ services:
     volumes:
       - voice-assistants-postgres-db:/var/lib/postgresql
     restart: always
-    container_name: voice-helper-database
-
-  database-admin:
-    image: dpage/pgadmin4
-    environment:
-      PGADMIN_DEFAULT_EMAIL: ${ADMIN_DEFAULT_EMAIL}
-      PGADMIN_DEFAULT_PASSWORD: ${ADMIN_DEFAULT_PASSWORD}
-    ports:
-      - "5050:80"
-    container_name: voice-helper-database-admin
-    restart: always
+    
 
 volumes:
   voice-assistants-postgres-db:
+
+# networks:
+#   default:
+#     external: 
+#       name: traefik

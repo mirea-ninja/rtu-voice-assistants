@@ -1,4 +1,4 @@
-from src.database.database import User, Session
+from ..database.database import User, Session
 
 
 async def create_user(user, db: Session):
