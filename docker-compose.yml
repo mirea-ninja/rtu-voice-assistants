@@ -1,13 +1,28 @@
 version: '3.9'
 
 services:
+  proxy:
+    container_name: voice-helper-proxy
+    build:
+      context: ./nginx
+      dockerfile: Dockerfile
+    restart: on-failure
+    ports:
+      - 80:80
+      - 443:443
+    volumes:
+      - ssl_data:/etc/resty-auto-ssl
+    environment:
+      ALLOWED_DOMAINS: "${ALLOWED_DOMAINS}"
+      SITES: "${ALLOWED_DOMAINS}=backend:8000"
+
   backend:
-    container_name: assistants-server
+    container_name: voice-helper-server
     build:
       context: ./src
       dockerfile: Dockerfile
     environment:
-      SCHEDULE_API_URL: ${DATABASE_NAME}
+      SCHEDULE_API_URL: ${SCHEDULE_API_URL}
       DATABASE_HOST: ${DATABASE_HOST}
       DATABASE_NAME: ${DATABASE_NAME}
       DATABASE_USER: ${DATABASE_USER}
@@ -17,29 +32,9 @@ services:
     depends_on:
       - database
     restart: always
-    labels:
-      - traefik.enable=true
-      - traefik.http.routers.backend.rule=Host(`assistants.mirea.ninja`)
-      - traefik.http.routers.backend.tls=true
-      - traefik.http.routers.backend.tls.certresolver=ninjaresolver
-
-
-  proxy:
-    container_name: assistants-proxy
-    image: traefik:latest
-    ports:
-      - 80:80
-      - 443:443
-    environment:
-      DO_AUTH_TOKEN:  ${DO_AUTH_TOKEN}
-    restart: always
-    volumes:
-      - /var/run/docker.sock:/var/run/docker.sock
-      - ./:/etc/traefik
-
 
   database:
-    container_name: assistants-database
+    container_name: voice-helper-database
     image: postgres:12.2-alpine
     environment:
       POSTGRES_DB: ${DATABASE_NAME}
@@ -55,3 +50,4 @@ services:
 
 volumes:
   voice-assistants-postgres-db:
+  ssl_data:

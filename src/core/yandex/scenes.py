@@ -450,7 +450,6 @@ class Schedule(BaseScene):
 
         day = request.slots.get('when', '')
         text = None
-        group = None
 
         yandex_datetime = False
         yandex_day = None
