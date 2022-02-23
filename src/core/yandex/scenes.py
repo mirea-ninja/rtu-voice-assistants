@@ -16,6 +16,7 @@ from ...crud.user import get_user, update_user
 
 from ...utils.schedule_utils import ScheduleUtils
 from ...utils.response_utils import ReponseUtils
+from ...utils.notifications_utils import DiscordLoggerUtils
 
 logger = logging.getLogger(__name__)
 
@@ -59,6 +60,7 @@ class BaseScene(ABC):
 
         logger.error(f'incomprehensible intent: {request.original_utterance}')
 
+        # await DiscordLoggerUtils.send_notification(request.session, request.original_utterance)
         return await self.make_response(text, tts=text)
 
     async def make_response(self, text, tts=None, buttons=None, state=None, group=None, exit=False):
@@ -305,6 +307,7 @@ class Schedule(BaseScene):
     async def reply(self, request: AliceRequest) -> dict[str, Any]:
         intent = list(request.intents.keys())[0]
         handler = self.intents_handler[intent]
+        logger.info(handler)
         return await handler(request)
 
     async def __get_week_parity(self, day: datetime) -> bool:
@@ -407,7 +410,7 @@ class Schedule(BaseScene):
     async def __get_schedule_list(self, schedule: dict, group: str, day: str, date: str, even: bool) -> str:
         schedule_text = f"Расписание для группы {group} на {date}\n\n"
 
-        lesson_type = {
+        lesson_types = {
             "лк": "Лекция",
             "пр": "Практика"
         }
@@ -418,15 +421,15 @@ class Schedule(BaseScene):
 
                 if len(schedule['schedule'][day]['lessons'][i]) >= 2:
                     if even:
-                        schedule_text += f"{i + 1}-ая пара. {schedule['schedule'][day]['lessons'][i][1]['name']}. {lesson_type[schedule['schedule'][day]['lessons'][i][1]['types']]}.\n"
+                        schedule_text += f"{i + 1}-ая пара. {schedule['schedule'][day]['lessons'][i][1]['name']}. {lesson_types[schedule['schedule'][day]['lessons'][i][1]['types']]}.\n"
                     else:
-                        schedule_text += f"{i + 1}-ая пара. {schedule['schedule'][day]['lessons'][i][0]['name']}. {lesson_type[schedule['schedule'][day]['lessons'][i][0]['types']]}.\n"
+                        schedule_text += f"{i + 1}-ая пара. {schedule['schedule'][day]['lessons'][i][0]['name']}. {lesson_types[schedule['schedule'][day]['lessons'][i][0]['types']]}.\n"
 
                 elif len(schedule['schedule'][day]['lessons'][i]) == 1:
                     lesson_weeks_odd = await self.__check_odd_array(schedule['schedule'][day]['lessons'][i][0]['weeks'])
 
                     if even and not lesson_weeks_odd:
-                        schedule_text += f"{i + 1}-ая пара. {schedule['schedule'][day]['lessons'][i][0]['name']}. {lesson_type[schedule['schedule'][day]['lessons'][i][0]['types']]}.\n"
+                        schedule_text += f"{i + 1}-ая пара. {schedule['schedule'][day]['lessons'][i][0]['name']}. {lesson_types[schedule['schedule'][day]['lessons'][i][0]['types']]}.\n"
 
         if schedule_text == f"Расписание для группы {group} на {date}\n\n":
             return "Пар нет! Отдыхайте!"
@@ -545,7 +548,6 @@ class Schedule(BaseScene):
 
         day = request.slots.get('when', '')
         text = None
-        group = None
 
         yandex_datetime = False
         yandex_day = None
@@ -602,7 +604,6 @@ class Schedule(BaseScene):
 
             response_schedule_json = await self.get_schedule_request(request, group=user.group)
             parity = await self.__get_week_parity(datetime.strptime(schedule_date, "%d.%m.%Y"))
-
             text = await self.__get_schedule_list(response_schedule_json, user.group, day, schedule_date, parity)
 
         return await self.make_response(text, tts=text)

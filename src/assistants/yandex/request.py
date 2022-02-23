@@ -62,5 +62,9 @@ class AliceRequest():
         return self.request_body.get('request', {}).get('command')
     
     @property
+    def new(self):
+        return self.request_body.get('session', {}).get('new')
+
+    @property
     def get_group(self):
         return self.request_body.get('state', {}).get(STATE_REQUEST_KEY, {}).get('group')

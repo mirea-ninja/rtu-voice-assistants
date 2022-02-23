@@ -52,12 +52,6 @@ services:
     volumes:
       - voice-assistants-postgres-db:/var/lib/postgresql
     restart: always
-    
 
 volumes:
   voice-assistants-postgres-db:
-
-# networks:
-#   default:
-#     external: 
-#       name: traefik

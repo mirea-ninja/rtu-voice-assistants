@@ -9,9 +9,10 @@ from fastapi import Depends
 from typing import Union, Any, Awaitable
 from starlette.requests import Request
 
-from ...core.session import get_session
 from ...assistants.yandex.request import AliceRequest
-from ...core.yandex.scenes import Welcome, SCENES, WelcomeDefault
+from ...core.session import get_session
+from ...core.yandex import intents 
+from ...core.yandex.scenes import Welcome, SCENES, WelcomeDefault, Schedule
 from ...core.yandex.state import STATE_REQUEST_KEY
 from ...crud.user import create_user, get_user
 from ...database.database import get_db, Session
@@ -43,9 +44,12 @@ class AliceVoiceAssistantService(VoiceAssistantServiceBase):
 
             if request.user_id != '':
                 user_id = request.user_id
-
+                
                 if await get_user(user_id, self.db) != None:
-                    return await WelcomeDefault().reply(request)
+                    if request.new and (set(intents.SCHEDULE_INTENTS) & set(request.intents)):
+                        return await Schedule().reply(request)
+                    else:
+                        return await WelcomeDefault().reply(request)
                 else:
 
                     user = {
@@ -61,7 +65,10 @@ class AliceVoiceAssistantService(VoiceAssistantServiceBase):
                 user_id = request.application_id
 
                 if await get_user(user_id, self.db) != None:
-                    return await WelcomeDefault().reply(request)
+                    if request.new and (set(intents.SCHEDULE_INTENTS) & set(request.intents)):
+                        return await Schedule().reply(request)
+                    else:
+                        return await WelcomeDefault().reply(request)
                 else:
                     user = {
                         "user_id": user_id,
