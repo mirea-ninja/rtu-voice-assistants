@@ -23,11 +23,11 @@ class MarusiaRequest():
 
     @property
     def user_id(self):
-        return self.request_body['session'].get('user', {}).get('user_id', '')
+        return self.request_body.get('user', {}).get('user_id', '')
     
     @property
     def application_id(self):
-        return self.request_body['session'].get('application', {}).get('application_id', '')
+        return self.request_body.get('session', {}).get('application', {}).get('application_id', '')
 
     @property
     def entities(self):

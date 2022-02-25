@@ -1,7 +1,6 @@
 import collections
 import logging
 
-from abc import ABC, abstractmethod
 from aiohttp import ClientSession
 from functools import lru_cache
 from typing import Any, Awaitable
@@ -10,21 +9,18 @@ from fastapi import Depends
 from starlette.requests import Request
 
 from ...assistants.vk.request import MarusiaRequest
-
 from ...core.session import get_session
-from ...core.vk.scenes import Welcome, SCENES, WelcomeDefault
+from ...core.vk import intents 
+from ...core.vk.scenes import Schedule, Welcome, WelcomeDefault, SCENES
 from ...core.vk.state import STATE_REQUEST_KEY
-
 from ...crud.user import create_user, get_user
-
 from ...database.database import get_db, Session
+from ...services.base.abc import VoiceAssistantServiceBase
 
 logger = logging.getLogger(__name__)
 
-logger = logging.getLogger(__name__)
 
-
-class MarusaVoiceAssistantService():
+class MarusaVoiceAssistantService(VoiceAssistantServiceBase):
     def __init__(self, session: ClientSession, db: Session) -> None:
         self.session = session
         self.db = db
@@ -36,37 +32,39 @@ class MarusaVoiceAssistantService():
         request = MarusiaRequest(request_body=event, session=self.session, db=self.db)
         current_scene_id = event.get('state', {}).get(
             STATE_REQUEST_KEY, {}).get('scene')
+        logger.info(current_scene_id)
 
         if current_scene_id is None:
-            return await Welcome().reply(request)
-            # if request.user_id != '':
-            #     user_id = request.user_id
+            if request.user_id != '':
+                user_id = request.user_id
 
-            #     if await get_user(user_id, self.db) != None:
-            #         return await WelcomeDefault().reply(request)
-            #     else:
+                if await get_user(user_id, self.db) != None:
+                    return await WelcomeDefault().reply(request)
+                else:
 
-            #         user = {
-            #             "user_id": user_id,
-            #             "group": ""
-            #         }
+                    user = {
+                        "user_id": user_id,
+                        "group": "",
+                        "platform": "VK"
+                    }
 
-            #         await create_user(user, self.db)
-            #         return await Welcome().reply(request)
+                    await create_user(user, self.db)
+                    return await Welcome().reply(request)
 
-            # elif request.application_id != '':
-            #     user_id = request.application_id
+            elif request.application_id != '':
+                user_id = request.application_id
 
-            #     if await get_user(user_id, self.db) != None:
-            #         return await WelcomeDefault().reply(request)
-            #     else:
-            #         user = {
-            #             "user_id": user_id,
-            #             "group": ""
-            #         }
+                if await get_user(user_id, self.db) != None:
+                    return await WelcomeDefault().reply(request)
+                else:
+                    user = {
+                        "user_id": user_id,
+                        "group": "",
+                        "platform": "VK"
+                    }
 
-            #         await create_user(user, self.db)
-            #         return await Welcome().reply(request)
+                    await create_user(user, self.db)
+                    return await Welcome().reply(request)
                     
         current_scene = SCENES.get(current_scene_id, Welcome)()
         next_scene = current_scene.move(request)

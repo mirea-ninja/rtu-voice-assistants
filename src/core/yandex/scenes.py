@@ -122,11 +122,11 @@ class WelcomeDefault(BaseScene):
     async def reply(self, request: AliceRequest):
         text = 'Привет! Какое расписание вы хотите посмотреть?'
         return await self.make_response(text, tts=text, buttons=[
-            ReponseUtils.button('Расписание на сегодня', hide=True),
-            ReponseUtils.button('Расписание на завтра', hide=True),
-            ReponseUtils.button('Сколько пар сегодня', hide=True),
-            ReponseUtils.button('Расписание на понедельник', hide=True),
-            ReponseUtils.button('Изменить группу', hide=True)
+            ReponseUtils.button_alice('Расписание на сегодня', hide=True),
+            ReponseUtils.button_alice('Расписание на завтра', hide=True),
+            ReponseUtils.button_alice('Сколько пар сегодня', hide=True),
+            ReponseUtils.button_alice('Расписание на понедельник', hide=True),
+            ReponseUtils.button_alice('Изменить группу', hide=True)
         ])
         
     def handle_local_intents(self, request: AliceRequest):
@@ -163,11 +163,11 @@ class Helper(BaseScene):
     async def reply(self, request: AliceRequest):
         text = "Я могу показать расписание твоей группы. Или, например, сказать количество пар сегодня"
         return await self.make_response(text, tts=text, buttons=[
-            ReponseUtils.button('Расписание на сегодня', hide=True),
-            ReponseUtils.button('Расписание на завтра', hide=True),
-            ReponseUtils.button('Сколько пар сегодня', hide=True),
-            ReponseUtils.button('Расписание на понедельник', hide=True),
-            ReponseUtils.button('Изменить группу', hide=True)
+            ReponseUtils.button_alice('Расписание на сегодня', hide=True),
+            ReponseUtils.button_alice('Расписание на завтра', hide=True),
+            ReponseUtils.button_alice('Сколько пар сегодня', hide=True),
+            ReponseUtils.button_alice('Расписание на понедельник', hide=True),
+            ReponseUtils.button_alice('Изменить группу', hide=True)
         ])
 
     def handle_local_intents(self, request: AliceRequest):
@@ -260,12 +260,12 @@ class GroupManager(BaseScene):
 
         text = f'Отлично, я запомнила, что вы из {user_group}. Для просмотра расписания скажите "Расписание на сегодня" или "Раписание на понедельник"\nДля просмотра помощи скажите "Помощь".\nЧтобы изменить группу скажите "Изменить группу"'
         return await self.make_response(text, tts=text, buttons=[
-            ReponseUtils.button('Расписание на сегодня', hide=True),
-            ReponseUtils.button('Расписание на завтра', hide=True),
-            ReponseUtils.button('Сколько пар сегодня', hide=True),
-            ReponseUtils.button('Помощь', hide=True),
-            ReponseUtils.button('Что ты умеешь?', hide=True),
-            ReponseUtils.button('Изменить группу', hide=True),
+            ReponseUtils.button_alice('Расписание на сегодня', hide=True),
+            ReponseUtils.button_alice('Расписание на завтра', hide=True),
+            ReponseUtils.button_alice('Сколько пар сегодня', hide=True),
+            ReponseUtils.button_alice('Помощь', hide=True),
+            ReponseUtils.button_alice('Что ты умеешь?', hide=True),
+            ReponseUtils.button_alice('Изменить группу', hide=True),
         ])
 
     async def user_group_reject(self, request: AliceRequest):
@@ -280,8 +280,8 @@ class GroupManager(BaseScene):
         text = f"Ваша группа {user_group}, верно?"
 
         return await self.make_response(text, tts=text, group=user_group, buttons=[
-            ReponseUtils.button('Да', hide=True),
-            ReponseUtils.button('Нет', hide=True)
+            ReponseUtils.button_alice('Да', hide=True),
+            ReponseUtils.button_alice('Нет', hide=True)
         ])
 
     async def user_group_update(self, request: AliceRequest):

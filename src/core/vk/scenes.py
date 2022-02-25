@@ -37,18 +37,21 @@ class BaseScene(ABC):
         return next_scene
 
     def handle_global_intents(self, request: MarusiaRequest):
-        intents_set = set(request.intents)
+        command = request.command
 
-        if intents.HELP in request.intents or intents.WHAT_CAN_YOU_DO in request.intents:
+        if command in intents.HELP:
             return Helper()
-
-        if intents_set & set(intents.SCHEDULE_INTENTS):
+        
+        if any(command in intent for intent in intents.SCHEDULE_INTENTS):
             return Schedule()
 
-        if intents_set & set(intents.USER_STUDY_GROUP_INTENTS):
+        if any(command.split(' ')[0] in intent for intent in intents.USER_STUDY_GROUP_SET):
+            return GroupManager()
+
+        if any(command in intent for intent in intents.USER_STUDY_GROUP_INTENTS):
             return GroupManager()
         
-        if intents_set & set(intents.EXIT_INTENTS):
+        if any(command in intent for intent in intents.EXIT_INTENTS):
             return GoodBye()
 
     async def handle_local_intents(self, request: MarusiaRequest) -> Optional[str]:
@@ -59,7 +62,7 @@ class BaseScene(ABC):
 
         logger.error(f'incomprehensible intent: {request.original_utterance}')
 
-        return await self.make_response(text, tts=text)
+        return await self.make_response(text, tts=text, request=request)
 
     async def make_response(self, text, request: MarusiaRequest, tts=None, buttons=None, state=None, group=None, exit=False):
 
@@ -124,7 +127,7 @@ class WelcomeDefault(BaseScene):
 
     async def reply(self, request: MarusiaRequest):
         text = 'Привет! Какое расписание вы хотите посмотреть?'
-        return await self.make_response(text, tts=text)
+        return await self.make_response(text, tts=text, request=request)
 
     def handle_local_intents(self, request: MarusiaRequest):
         return self.handle_global_intents(request)
@@ -160,12 +163,12 @@ class Helper(BaseScene):
     async def reply(self, request: MarusiaRequest):
         text = "Я могу показать расписание твоей группы. Или, например, сказать количество пар сегодня"
         return await self.make_response(text, tts=text, buttons=[
-            ReponseUtils.button('Расписание на сегодня', hide=True),
-            ReponseUtils.button('Расписание на завтра', hide=True),
-            ReponseUtils.button('Сколько пар сегодня', hide=True),
-            ReponseUtils.button('Расписание на понедельник', hide=True),
-            ReponseUtils.button('Изменить группу', hide=True)
-        ])
+            ReponseUtils.button_vk('Расписание на сегодня'),
+            ReponseUtils.button_vk('Расписание на завтра'),
+            ReponseUtils.button_vk('Сколько пар сегодня'),
+            ReponseUtils.button_vk('Расписание на понедельник'),
+            ReponseUtils.button_vk('Изменить группу')
+        ], request=request)
 
     def handle_local_intents(self, request: MarusiaRequest):
         return self.handle_global_intents(request)
@@ -174,22 +177,31 @@ class Helper(BaseScene):
 class GroupManager(BaseScene):
 
     def __init__(self):
-
-        self.intents_dict = {
-            intents.USER_STUDY_GROUP_SET: self.user_group_set,
-            intents.USER_STUDY_GROUP_UPDATE: self.user_group_update,
-            intents.CONFIRM: self.user_group_confirm,
-            intents.REJECT: self.user_group_reject
-        }
+        pass
+        # self.intents_dict = {
+        #     intents.USER_STUDY_GROUP_SET: self.user_group_set,
+        #     intents.USER_STUDY_GROUP_UPDATE: self.user_group_update,
+        #     intents.CONFIRM: self.user_group_confirm,
+        #     intents.REJECT: self.user_group_reject
+        # }
 
     @property
     def intents_handler(self) -> dict[str, Callable[[MarusiaRequest], Awaitable]]:
         return self.intents_dict
 
     async def reply(self, request: MarusiaRequest) -> dict[str, Any]:
-        intent = list(request.intents.keys())[0]
-        handler = self.intents_handler[intent]
-        return await handler(request)
+        intent = request.command
+
+        # handler = self.intents_handler[intent]
+        # return await handler(request)
+        if intent.split(' ')[0].capitalize() in intents.USER_STUDY_GROUP_SET:
+            return await self.user_group_set(request)
+        if intent.lower() in intents.USER_STUDY_GROUP_UPDATE:
+            return await self.user_group_update(request)
+        if intent.lower() in intents.CONFIRM:
+            return await self.user_group_confirm(request)
+        if intent.lower() in intents.REJECT:
+            return await self.user_group_reject(request)
 
     async def __find_user_group(self, groups: list, user_group: str):
 
@@ -255,18 +267,18 @@ class GroupManager(BaseScene):
 
         text = f'Отлично, я запомнила, что вы из {user_group}. Для просмотра расписания скажите "Расписание на сегодня" или "Раписание на понедельник"\nДля просмотра помощи скажите "Помощь".\nЧтобы изменить группу скажите "Изменить группу"'
         return await self.make_response(text, tts=text, buttons=[
-            ReponseUtils.button('Расписание на сегодня', hide=True),
-            ReponseUtils.button('Расписание на завтра', hide=True),
-            ReponseUtils.button('Сколько пар сегодня', hide=True),
-            ReponseUtils.button('Помощь', hide=True),
-            ReponseUtils.button('Что ты умеешь?', hide=True),
-            ReponseUtils.button('Изменить группу', hide=True),
-        ])
+            ReponseUtils.button_vk('Расписание на сегодня'),
+            ReponseUtils.button_vk('Расписание на завтра'),
+            ReponseUtils.button_vk('Сколько пар сегодня'),
+            ReponseUtils.button_vk('Помощь'),
+            ReponseUtils.button_vk('Что ты умеешь?'),
+            ReponseUtils.button_vk('Изменить группу'),
+        ], request=request)
 
     async def user_group_reject(self, request: MarusiaRequest):
         self.user_group = ""
         text = f"Давайте попробуем еще раз. Назовите вашу группу"
-        return await self.make_response(text, tts=text)
+        return await self.make_response(text, tts=text, request=request)
 
     async def user_group_set(self, request: MarusiaRequest):
         groups_json = await self.get_groups_request(request)
@@ -275,13 +287,13 @@ class GroupManager(BaseScene):
         text = f"Ваша группа {user_group}, верно?"
 
         return await self.make_response(text, tts=text, group=user_group, buttons=[
-            ReponseUtils.button('Да', hide=True),
-            ReponseUtils.button('Нет', hide=True)
-        ])
+            ReponseUtils.button_vk('Да'),
+            ReponseUtils.button_vk('Нет')
+        ], request=request)
 
     async def user_group_update(self, request: MarusiaRequest):
         text = "Хорошо, назовите новую группу и я её запомню"
-        return await self.make_response(text, tts=text)
+        return await self.make_response(text, tts=text, request=request)
 
     def handle_local_intents(self, request: MarusiaRequest):
         if set(request.intents) & set(intents.USER_STUDY_GROUP_INTENTS):
@@ -444,7 +456,6 @@ class Schedule(BaseScene):
 
         day = request.slots.get('when', '')
         text = None
-        group = None
 
         yandex_datetime = False
         yandex_day = None
@@ -535,14 +546,13 @@ class Schedule(BaseScene):
                     else:
                         text = f"В {day.lower()} у вас {lessons_count} {ru_ending}"
 
-        return await self.make_response(text, tts=text)
+        return await self.make_response(text, tts=text, request=request)
 
     async def schedule_info_list(self, request: MarusiaRequest):
         # TODO: REFACTOR
 
         day = request.slots.get('when', '')
         text = None
-        group = None
 
         yandex_datetime = False
         yandex_day = None
@@ -602,7 +612,7 @@ class Schedule(BaseScene):
 
             text = await self.__get_schedule_list(response_schedule_json, user.group, day, schedule_date, parity)
 
-        return await self.make_response(text, tts=text)
+        return await self.make_response(text, tts=text, request=request)
 
     def handle_local_intents(self, request: MarusiaRequest):
         if set(request.intents) & set(intents.SCHEDULE_INTENTS):

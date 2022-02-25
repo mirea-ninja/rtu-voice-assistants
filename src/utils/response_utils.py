@@ -1,6 +1,6 @@
 class ReponseUtils:
     @staticmethod
-    def button(title: str, payload: str=None, url: str=None, hide: bool=False):
+    def button_alice(title: str, payload: str=None, url: str=None, hide: bool=False):
         button = {
             'title': title,
             'hide': hide,
@@ -14,6 +14,20 @@ class ReponseUtils:
 
         return button
     
+    @staticmethod
+    def button_vk(title: str, payload: str=None, url: str=None):
+        button = {
+            'title': title
+        }
+
+        if payload is not None:
+            button['payload'] = payload
+
+        if url is not None:
+            button['url'] = url
+
+        return button
+
     @staticmethod
     def button_sber(title: str, action: str=None):
         button = {

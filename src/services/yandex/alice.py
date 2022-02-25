@@ -1,12 +1,11 @@
 import collections
 import logging
 
-from abc import ABC, abstractmethod
 from aiohttp import ClientSession
 from functools import lru_cache
 
 from fastapi import Depends
-from typing import Union, Any, Awaitable
+from typing import Any, Awaitable
 from starlette.requests import Request
 
 from ...assistants.yandex.request import AliceRequest
@@ -16,15 +15,9 @@ from ...core.yandex.scenes import Welcome, SCENES, WelcomeDefault, Schedule
 from ...core.yandex.state import STATE_REQUEST_KEY
 from ...crud.user import create_user, get_user
 from ...database.database import get_db, Session
+from ...services.base.abc import VoiceAssistantServiceBase
 
 logger = logging.getLogger(__name__)
-
-
-class VoiceAssistantServiceBase(ABC):
-
-    @abstractmethod
-    def parse_request_and_routing(self, *args, **kwargs) -> Union[Any, Awaitable[Any]]:
-        ...
 
 
 class AliceVoiceAssistantService(VoiceAssistantServiceBase):
