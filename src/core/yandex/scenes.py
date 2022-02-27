@@ -1,3 +1,4 @@
+from calendar import week
 import logging
 import difflib
 import re
@@ -16,7 +17,6 @@ from ...crud.user import get_user, update_user
 
 from ...utils.schedule_utils import ScheduleUtils
 from ...utils.response_utils import ReponseUtils
-from ...utils.notifications_utils import DiscordLoggerUtils
 
 logger = logging.getLogger(__name__)
 
@@ -57,10 +57,7 @@ class BaseScene(ABC):
 
     async def fallback(self, request: AliceRequest):
         text = 'Не понимаю. Попробуйте сформулировать иначе. Скажите "Помощь" или "Что ты умеешь" и я помогу'
-
         logger.error(f'incomprehensible intent: {request.original_utterance}')
-
-        # await DiscordLoggerUtils.send_notification(request.session, request.original_utterance)
         return await self.make_response(text, tts=text)
 
     async def make_response(self, text, tts=None, buttons=None, state=None, group=None, exit=False):
@@ -307,11 +304,10 @@ class Schedule(BaseScene):
     async def reply(self, request: AliceRequest) -> dict[str, Any]:
         intent = list(request.intents.keys())[0]
         handler = self.intents_handler[intent]
-        logger.info(handler)
         return await handler(request)
 
     async def __get_week_parity(self, day: datetime) -> bool:
-        return ScheduleUtils.get_week(day) % 2
+        return False if (ScheduleUtils.get_week(day) % 2) else True
 
     async def __get_day_num(self, day: str) -> str:
 
@@ -448,7 +444,7 @@ class Schedule(BaseScene):
     async def schedule_info_count(self, request: AliceRequest):
         # TODO: REFACTOR
 
-        day = request.slots.get('when', '')
+        day = request.slots.get('type', '')
         text = None
 
         yandex_datetime = False
@@ -456,9 +452,7 @@ class Schedule(BaseScene):
 
         py_date = None
         schedule_date = None
-
-        parity = False
-
+        logger.info(day)
         if day == "YandexDatetime":
             entities = request.entities
             day = await self.__get_day_num_from_yandex(entities[0]['value']['day'])
@@ -506,7 +500,8 @@ class Schedule(BaseScene):
 
             response_schedule_json = await self.get_schedule_request(request, group=user.group)
             parity = await self.__get_week_parity(datetime.strptime(schedule_date, "%d.%m.%Y"))
-
+            logger.info(parity)
+            logger.info(day)
             lessons_count = await self.__get_schedule_count(response_schedule_json, day, parity)
             ru_ending = await self.__convert_to_str(lessons_count)
 
@@ -553,8 +548,6 @@ class Schedule(BaseScene):
 
         py_date = None
         schedule_date = None
-
-        parity = False
 
         if day == "YandexDatetime":
             entities = request.entities
