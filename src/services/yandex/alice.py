@@ -37,10 +37,13 @@ class AliceVoiceAssistantService(VoiceAssistantServiceBase):
 
             if request.user_id != '':
                 user_id = request.user_id
-                
-                if await get_user(user_id, self.db) != None:
+                user = await get_user(user_id, self.db)
+
+                if user != None:
                     if request.new and (set(intents.SCHEDULE_INTENTS) & set(request.intents)):
                         return await Schedule().reply(request)
+                    elif len(user.group) == 0:
+                        return await Welcome().reply(request)
                     else:
                         return await WelcomeDefault().reply(request)
                 else:
@@ -56,10 +59,13 @@ class AliceVoiceAssistantService(VoiceAssistantServiceBase):
 
             elif request.application_id != '':
                 user_id = request.application_id
+                user = await get_user(user_id, self.db)
 
-                if await get_user(user_id, self.db) != None:
+                if user != None:
                     if request.new and (set(intents.SCHEDULE_INTENTS) & set(request.intents)):
                         return await Schedule().reply(request)
+                    elif len(user.group) == 0:
+                        return await Welcome().reply(request)
                     else:
                         return await WelcomeDefault().reply(request)
                 else:

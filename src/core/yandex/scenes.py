@@ -408,7 +408,8 @@ class Schedule(BaseScene):
 
         lesson_types = {
             "лк": "Лекция",
-            "пр": "Практика"
+            "пр": "Практика",
+            "": ""
         }
 
         for i in range(len(schedule['schedule'][day]['lessons'])):
@@ -417,9 +418,9 @@ class Schedule(BaseScene):
 
                 if len(schedule['schedule'][day]['lessons'][i]) >= 2:
                     if even:
-                        schedule_text += f"{i + 1}-ая пара. {schedule['schedule'][day]['lessons'][i][1]['name']}. {lesson_types[schedule['schedule'][day]['lessons'][i][1]['types']]}.\n"
+                        schedule_text += f"{i + 1}-ая пара. {schedule['schedule'][day]['lessons'][i][1]['name']}. {lesson_types[schedule['schedule'][day]['lessons'][i][1]['types']]}\n"
                     else:
-                        schedule_text += f"{i + 1}-ая пара. {schedule['schedule'][day]['lessons'][i][0]['name']}. {lesson_types[schedule['schedule'][day]['lessons'][i][0]['types']]}.\n"
+                        schedule_text += f"{i + 1}-ая пара. {schedule['schedule'][day]['lessons'][i][0]['name']}. {lesson_types[schedule['schedule'][day]['lessons'][i][0]['types']]}\n"
 
                 elif len(schedule['schedule'][day]['lessons'][i]) == 1:
                     lesson_weeks_odd = await self.__check_odd_array(schedule['schedule'][day]['lessons'][i][0]['weeks'])
