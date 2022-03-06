@@ -154,3 +154,5 @@ cython_debug/
 ngrok.exe
 
 acme.json
+.env.production
+fastapi_alice_tests/
