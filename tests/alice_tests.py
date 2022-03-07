@@ -2,9 +2,32 @@ import unittest
 import sys
 import random
 import string
+import os
 
 from fastapi_alice_tests import Interface, Skill
+from sqlalchemy import create_engine
+from sqlalchemy.orm import sessionmaker
 from src.app import app
+from src.database.database import Base, get_db
+from src.database.migrate import migrate_test
+
+
+engine = create_engine("sqlite:///./tests/test.db",
+                       connect_args={"check_same_thread": False})
+Base.metadata.create_all(bind=engine)
+TestingSessionLocal = sessionmaker(bind=engine)
+
+
+def override_get_db():
+    try:
+        db = TestingSessionLocal()
+        yield db
+    finally:
+        db.close()
+
+
+app.dependency_overrides[get_db] = override_get_db
+migrate_test(TestingSessionLocal())
 
 
 class TestYandexSkill(unittest.TestCase):

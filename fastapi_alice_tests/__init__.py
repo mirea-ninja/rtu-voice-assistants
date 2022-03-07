@@ -33,7 +33,6 @@ class Skill:
     def __init__(self, fastapi_app, skill_id, webhook_url, is_screen_need=False):
         self.app = fastapi_app
         self.client = TestClient(fastapi_app)
-
         self.skill_id = skill_id
         self.url = webhook_url
         self.is_screen_need = is_screen_need

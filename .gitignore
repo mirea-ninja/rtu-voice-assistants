@@ -155,3 +155,4 @@ ngrok.exe
 
 acme.json
 .env.production
+tests/test.db

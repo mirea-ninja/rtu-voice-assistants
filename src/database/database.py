@@ -18,13 +18,14 @@ def get_db():
     finally:
         db.close()
 
+
 def init_db():
     Base.metadata.create_all(engine_postrgesql)
-    
+
+
 class User(Base):
     __tablename__ = "user"
     id = Column(Integer, primary_key=True)
     user_id = Column(String(512))
     group = Column(String(10))
     platform = Column(String(512))
-
