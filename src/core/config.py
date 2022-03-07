@@ -15,5 +15,3 @@ DATABASE_PASSWORD = os.environ.get('DATABASE_PASSWORD')
 DATABASE_PORT = os.environ.get('DATABASE_PORT')
 
 VK_API_KEY = os.environ.get('VK_API_KEY')
-
-DISCORD_WEBHOOK_URL = os.environ.get('DISCORD_WEBHOOK_URL')

@@ -12,6 +12,17 @@ on:
       - dev
       - "dev/**"
 
+env:
+  ALLOWED_DOMAINS: test.com
+  DATABASE_HOST: host
+  DATABASE_NAME: name
+  DATABASE_USER: user
+  DATABASE_PASSWORD: password
+  DATABASE_PORT: 5000
+  SCHEDULE_API_URL: test.com
+  VK_API_KEY: 0
+
+
 jobs:
   build:
     runs-on: ubuntu-latest
