@@ -25,7 +25,7 @@ async def alice_webhook(request: Request,  service: Awaitable[alice.AliceVoiceAs
 
     if isinstance(service, collections.abc.Awaitable):
         service = await service
-    logger.info(await request.json())
+
     response = await service.parse_request_and_routing(request=request)
 
     return ORJSONResponse(content=response)
@@ -40,7 +40,7 @@ async def marusia_webhook(request: Request,  service: Awaitable[marusia.MarusaVo
 
     if isinstance(service, collections.abc.Awaitable):
         service = await service
-    logger.info(await request.json())
+
     response = await service.parse_request_and_routing(request=request)
 
     return ORJSONResponse(content=response)
@@ -55,7 +55,7 @@ async def sber_webhook(request: Request,  service: Awaitable[sber.SberVoiceAssis
 
     if isinstance(service, collections.abc.Awaitable):
         service = await service
-    logger.info(await request.json())
+
     response = await service.parse_request_and_routing(request=request)
 
     return ORJSONResponse(content=response)

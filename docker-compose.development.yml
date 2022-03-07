@@ -1,0 +1,20 @@
+version: '3.9'
+
+services:
+  database:
+    container_name: voice-helper-database
+    image: postgres:12.2-alpine
+    environment:
+      POSTGRES_DB: ${DATABASE_NAME}
+      POSTGRES_USER: ${DATABASE_USER}
+      POSTGRES_PASSWORD: ${DATABASE_PASSWORD}
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    ports:
+      - "${DATABASE_PORT}:${DATABASE_PORT}"
+    volumes:
+      - voice-assistants-postgres-db:/var/lib/postgresql
+    restart: always
+
+volumes:
+  voice-assistants-postgres-db:

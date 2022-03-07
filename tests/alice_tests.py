@@ -10,26 +10,65 @@ from src.app import app
 class TestYandexSkill(unittest.TestCase):
     skill = Skill(
         app, 'd82b8851-a7c5-42bc-9907-4fea75f54f05', '/api/v1/alice')
-    random_uid = "".join(random.choices(string.ascii_uppercase + string.ascii_lowercase + string.digits, k=10))
-
+    random_uid = "".join(random.choices(
+        string.ascii_uppercase + string.ascii_lowercase + string.digits, k=10))
 
     def test_skill_response(self):
         self.assertTrue(TestYandexSkill.skill)
 
-
-    def test_new_welcome(self):
+    def test_welcome_scene(self):
         session = TestYandexSkill.skill.new_session(
             f'TEST_NEW', [Interface.SCREEN])
-        self.assertTrue(session.contain("Привет! Теперь я умею показывать расписание РТУ МИРЭА. Для начала скажите мне свою группу."))
-                
+        self.assertTrue(session.contain(
+            "Привет! Теперь я умею показывать расписание РТУ МИРЭА. Для начала скажите мне свою группу."))
 
-    def test_default_welcome(self):
+    def test_welcome_default_scene(self):
         session = TestYandexSkill.skill.new_session(
             f'TEST_DEFAULT', [Interface.SCREEN])
-        self.assertTrue(session.contain("Привет! Какое расписание вы хотите посмотреть?"))
+        self.assertTrue(session.contain(
+            "Привет! Какое расписание вы хотите посмотреть?"))
 
+    def test_help_scene(self):
+        session = TestYandexSkill.skill.new_session(
+            f'TEST_{TestYandexSkill.random_uid}', [Interface.SCREEN])
+        session.send(
+            "Помощь",
+            command='помощь',
+            nlu={
+                "tokens": ["помощь"],
+                "entities": [],
+                "intents": {
+                    "YANDEX.HELP": {
+                        "slots": {}
+                    }
+                }
+            }
+        )
+        self.assertTrue(session.contain(
+            "Я могу показать расписание твоей группы. Или, например, сказать количество пар сегодня"))
+        self.assertEqual(len(session.buttons), 5)
 
-    def test_group(self):
+    def test_wcyd_scene(self):
+        session = TestYandexSkill.skill.new_session(
+            f'TEST_{TestYandexSkill.random_uid}', [Interface.SCREEN])
+        session.send(
+            "Что ты умеешь?",
+            command='что ты умеешь',
+            nlu={
+                "tokens": ["что", "ты", "умеешь"],
+                "entities": [],
+                "intents": {
+                    "YANDEX.WHAT_CAN_YOU_DO": {
+                        "slots": {}
+                    }
+                }
+            }
+        )
+        self.assertTrue(session.contain(
+            "Я могу показать расписание твоей группы. Или, например, сказать количество пар сегодня"))
+        self.assertEqual(len(session.buttons), 5)
+
+    def test_groupmanager_scene(self):
         session = TestYandexSkill.skill.new_session(
             f'TEST_{TestYandexSkill.random_uid}', [Interface.SCREEN])
         session.send(
