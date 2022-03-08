@@ -2,7 +2,6 @@ import unittest
 import sys
 import random
 import string
-import os
 
 from fastapi_alice_tests import Interface, Skill
 from sqlalchemy import create_engine
@@ -10,7 +9,7 @@ from sqlalchemy.orm import sessionmaker
 from src.app import app
 from src.database.database import Base, get_db
 from src.database.migrate import migrate_test
-
+from src.core.config import SKILL_ID
 
 engine = create_engine("sqlite:///./tests/test.db",
                        connect_args={"check_same_thread": False})
@@ -32,7 +31,7 @@ migrate_test(TestingSessionLocal())
 
 class TestYandexSkill(unittest.TestCase):
     skill = Skill(
-        app, 'd82b8851-a7c5-42bc-9907-4fea75f54f05', '/api/v1/alice')
+        app, SKILL_ID, '/api/v1/alice')
     random_uid = "".join(random.choices(
         string.ascii_uppercase + string.ascii_lowercase + string.digits, k=10))
 

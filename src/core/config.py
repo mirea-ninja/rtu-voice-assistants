@@ -14,4 +14,5 @@ DATABASE_USER = os.environ.get('DATABASE_USER')
 DATABASE_PASSWORD = os.environ.get('DATABASE_PASSWORD')
 DATABASE_PORT = os.environ.get('DATABASE_PORT')
 
+SKILL_ID = os.environ.get('SKILL_ID')
 VK_API_KEY = os.environ.get('VK_API_KEY')
