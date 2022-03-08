@@ -3,7 +3,7 @@
 Это голосовые ассистены с полностью открытым исходным кодом для студентов и преподавателей РТУ МИРЭА.
 Список поддерживаемых платформ:
 
-- Yandex.Alice - [Навык в каталоге Яндекс.Диалогов](http://localhost:8000/api/v1/alice "prod")
+- Yandex.Alice - [Навык в каталоге Яндекс.Диалогов](https://dialogs.yandex.ru/store/skills/fdd92935-raspisanie-rtu-mirea "prod")
 - VK.Marusia - `dev`
 - Sber.Salut - `dev`
 
