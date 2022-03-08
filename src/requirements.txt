@@ -1,4 +1,5 @@
 uvicorn==0.14.0
+gunicorn
 fastapi==0.66.0
 pydantic==1.8.2
 SQLAlchemy

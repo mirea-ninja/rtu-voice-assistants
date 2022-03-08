@@ -14,8 +14,8 @@ logger = logging.getLogger(__name__)
     tags=["Uptime"],
     status_code=HTTP_200_OK,
 )
-async def alice_webhook(request: Request) -> ORJSONResponse:
+async def uptime(request: Request) -> ORJSONResponse:
     response = {
-        "message": "OKs"
+        "message": "OK"
     }
     return ORJSONResponse(content=response)
