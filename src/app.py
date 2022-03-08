@@ -11,7 +11,7 @@ logging.basicConfig(
     format='%(asctime)s - %(name)s - %(threadName)s - %(levelname)s - %(message)s',
     level=logging.INFO,
     handlers=[
-        # logging.FileHandler("logs.log", mode='w', encoding='UTF-8'),
+        logging.FileHandler("logs.log", mode='w', encoding='UTF-8'),
         logging.StreamHandler()
     ]
 )
