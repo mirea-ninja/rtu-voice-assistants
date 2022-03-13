@@ -69,28 +69,28 @@ VK_API_KEY=YOUR_VK_API_KEY_HERE
 ```
 
 3. Переименуйте `.env.example` to `.env`
-4. Install dependencies:
+4. Установите зависимости:
 
 ```sh
 cd src
 pip install -r requirements.txt
 ```
 
-4. Запустите базу данных с помощью Docker Compose:
+5. Запустите базу данных с помощью Docker Compose:
 
 ```sh
 docker-compose -f docker-compose.development.yml up --build -d
 ```
 
-5. Запустите проект, используя команду:
+6. Запустите проект, используя команду:
 
 ```sh
 python3 main.py
 ```
 
-6. Для локального тестирования навыка установите [Ngrok](https://ngrok.com/ "ngrok")
+7. Для локального тестирования навыка установите [Ngrok](https://ngrok.com/ "ngrok")
 
-7. Запустите ngrok, используя команду:
+8. Запустите ngrok, используя команду:
 
 ```sh
 ngrok http 8000

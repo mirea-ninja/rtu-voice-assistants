@@ -48,7 +48,7 @@ class BaseScene(ABC):
 
         if intents_set & set(intents.USER_STUDY_GROUP_INTENTS):
             return GroupManager()
-        
+
         if intents_set & set(intents.EXIT_INTENTS):
             return GoodBye()
 
@@ -125,7 +125,7 @@ class WelcomeDefault(BaseScene):
             ReponseUtils.button_alice('Расписание на понедельник', hide=True),
             ReponseUtils.button_alice('Изменить группу', hide=True)
         ])
-        
+
     def handle_local_intents(self, request: AliceRequest):
         return self.handle_global_intents(request)
 
@@ -194,7 +194,7 @@ class GroupManager(BaseScene):
     async def __find_user_group(self, groups: list, user_group: str):
 
         user_group = user_group.replace(' ', '')
-        
+
         if len(user_group) < 5 or len(user_group) > 10:
             return None
 
@@ -255,7 +255,7 @@ class GroupManager(BaseScene):
 
             await update_user(user, request.db)
 
-        text = f'Отлично, я запомнила, что вы из {user_group}. Для просмотра расписания скажите "Расписание на сегодня" или "Раписание на понедельник"\nДля просмотра помощи скажите "Помощь".\nЧтобы изменить группу скажите "Изменить группу"'
+        text = f'Отлично, я запомнила, что вы из {user_group}. Для просмотра расписания скажите "Расписание на сегодня" или "Расписание на понедельник"\nДля просмотра помощи скажите "Помощь".\nЧтобы изменить группу скажите "Изменить группу"'
         return await self.make_response(text, tts=text, buttons=[
             ReponseUtils.button_alice('Расписание на сегодня', hide=True),
             ReponseUtils.button_alice('Расписание на завтра', hide=True),
@@ -385,6 +385,18 @@ class Schedule(BaseScene):
     async def __check_odd_array(self, array: list) -> bool:
         return len([n for n in array if n % 2]) > 0
 
+    async def __get_lesson_type(self, lesson_type: str) -> str:
+        if lesson_type.lower() == 'лк' or lesson_type.lower() == 'лек':
+            return "Лекция"
+        elif lesson_type.lower() == 'лб' or lesson_type.lower() == 'лаб':
+            return "Лабораторная работа"
+        elif lesson_type.lower() == 'с/р' or lesson_type.lower() == 'ср':
+            return "Самостоятельная работа"
+        elif lesson_type.lower() == 'пр' or lesson_type.lower() == 'прак':
+            return "Практика"
+        else:
+            return lesson_type
+
     async def __get_schedule_count(self, schedule: dict, day: str, even: bool) -> int:
         count = 0
 
@@ -406,28 +418,21 @@ class Schedule(BaseScene):
     async def __get_schedule_list(self, schedule: dict, group: str, day: str, date: str, even: bool) -> str:
         schedule_text = f"Расписание для группы {group} на {date}\n\n"
 
-        lesson_types = {
-            "лк": "Лекция",
-            "пр": "Практика",
-            "лаб": "Лабораторная работа",
-            "": ""
-        }
-
         for i in range(len(schedule['schedule'][day]['lessons'])):
 
             if len(schedule['schedule'][day]['lessons'][i]) > 0:
 
                 if len(schedule['schedule'][day]['lessons'][i]) >= 2:
                     if even:
-                        schedule_text += f"{i + 1}-ая пара. {schedule['schedule'][day]['lessons'][i][1]['name']}. {lesson_types[schedule['schedule'][day]['lessons'][i][1]['types']]}\n"
+                        schedule_text += f"{i + 1}-ая пара. {schedule['schedule'][day]['lessons'][i][1]['name']}. {await self.__get_lesson_type(schedule['schedule'][day]['lessons'][i][1]['types'])}\n"
                     else:
-                        schedule_text += f"{i + 1}-ая пара. {schedule['schedule'][day]['lessons'][i][0]['name']}. {lesson_types[schedule['schedule'][day]['lessons'][i][0]['types']]}\n"
+                        schedule_text += f"{i + 1}-ая пара. {schedule['schedule'][day]['lessons'][i][0]['name']}. {await self.__get_lesson_type(schedule['schedule'][day]['lessons'][i][0]['types'])}\n"
 
                 elif len(schedule['schedule'][day]['lessons'][i]) == 1:
                     lesson_weeks_odd = await self.__check_odd_array(schedule['schedule'][day]['lessons'][i][0]['weeks'])
 
                     if even and not lesson_weeks_odd:
-                        schedule_text += f"{i + 1}-ая пара. {schedule['schedule'][day]['lessons'][i][0]['name']}. {lesson_types[schedule['schedule'][day]['lessons'][i][0]['types']]}.\n"
+                        schedule_text += f"{i + 1}-ая пара. {schedule['schedule'][day]['lessons'][i][0]['name']}. {await self.__get_lesson_type(schedule['schedule'][day]['lessons'][i][0]['types'])}.\n"
 
         if schedule_text == f"Расписание для группы {group} на {date}\n\n":
             return "Пар нет! Отдыхайте!"

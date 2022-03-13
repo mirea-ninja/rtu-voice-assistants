@@ -10,7 +10,7 @@ from starlette.requests import Request
 
 from ...assistants.yandex.request import AliceRequest
 from ...core.session import get_session
-from ...core.yandex import intents 
+from ...core.yandex import intents
 from ...core.yandex.scenes import Welcome, SCENES, WelcomeDefault, Schedule
 from ...core.yandex.state import STATE_REQUEST_KEY
 from ...crud.user import create_user, get_user
@@ -29,7 +29,8 @@ class AliceVoiceAssistantService(VoiceAssistantServiceBase):
 
         event = await request.json()
 
-        request = AliceRequest(request_body=event, session=self.session, db=self.db)
+        request = AliceRequest(
+            request_body=event, session=self.session, db=self.db)
         current_scene_id = event.get('state', {}).get(
             STATE_REQUEST_KEY, {}).get('scene')
 
@@ -77,7 +78,7 @@ class AliceVoiceAssistantService(VoiceAssistantServiceBase):
 
                     await create_user(user, self.db)
                     return await Welcome().reply(request)
-                    
+
         current_scene = SCENES.get(current_scene_id, Welcome)()
         next_scene = current_scene.move(request)
 
