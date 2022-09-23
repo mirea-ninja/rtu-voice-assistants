@@ -40,32 +40,29 @@ class MarusaVoiceAssistantService(VoiceAssistantServiceBase):
 
                 if await get_user(user_id, self.db) != None:
                     return await WelcomeDefault().reply(request)
-                else:
+                user = {
+                    "user_id": user_id,
+                    "group": "",
+                    "platform": "VK"
+                }
 
-                    user = {
-                        "user_id": user_id,
-                        "group": "",
-                        "platform": "VK"
-                    }
-
-                    await create_user(user, self.db)
-                    return await Welcome().reply(request)
+                await create_user(user, self.db)
+                return await Welcome().reply(request)
 
             elif request.application_id != '':
                 user_id = request.application_id
 
                 if await get_user(user_id, self.db) != None:
                     return await WelcomeDefault().reply(request)
-                else:
-                    user = {
-                        "user_id": user_id,
-                        "group": "",
-                        "platform": "VK"
-                    }
+                user = {
+                    "user_id": user_id,
+                    "group": "",
+                    "platform": "VK"
+                }
 
-                    await create_user(user, self.db)
-                    return await Welcome().reply(request)
-                    
+                await create_user(user, self.db)
+                return await Welcome().reply(request)
+
         current_scene = SCENES.get(current_scene_id, Welcome)()
         next_scene = current_scene.move(request)
 

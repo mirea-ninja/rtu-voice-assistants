@@ -39,14 +39,7 @@ class AliceVoiceAssistantService(VoiceAssistantServiceBase):
                 user_id = request.user_id
                 user = await get_user(user_id, self.db)
 
-                if user != None:
-                    if request.new and (set(intents.SCHEDULE_INTENTS) & set(request.intents)):
-                        return await Schedule().reply(request)
-                    elif len(user.group) == 0:
-                        return await Welcome().reply(request)
-                    else:
-                        return await WelcomeDefault().reply(request)
-                else:
+                if user is None:
 
                     user = {
                         "user_id": user_id,
@@ -57,18 +50,18 @@ class AliceVoiceAssistantService(VoiceAssistantServiceBase):
                     await create_user(user, self.db)
                     return await Welcome().reply(request)
 
+                else:
+                    if request.new and (set(intents.SCHEDULE_INTENTS) & set(request.intents)):
+                        return await Schedule().reply(request)
+                    elif len(user.group) == 0:
+                        return await Welcome().reply(request)
+                    else:
+                        return await WelcomeDefault().reply(request)
             elif request.application_id != '':
                 user_id = request.application_id
                 user = await get_user(user_id, self.db)
 
-                if user != None:
-                    if request.new and (set(intents.SCHEDULE_INTENTS) & set(request.intents)):
-                        return await Schedule().reply(request)
-                    elif len(user.group) == 0:
-                        return await Welcome().reply(request)
-                    else:
-                        return await WelcomeDefault().reply(request)
-                else:
+                if user is None:
                     user = {
                         "user_id": user_id,
                         "group": "",
@@ -77,7 +70,14 @@ class AliceVoiceAssistantService(VoiceAssistantServiceBase):
 
                     await create_user(user, self.db)
                     return await Welcome().reply(request)
-                    
+
+                else:
+                    if request.new and (set(intents.SCHEDULE_INTENTS) & set(request.intents)):
+                        return await Schedule().reply(request)
+                    elif len(user.group) == 0:
+                        return await Welcome().reply(request)
+                    else:
+                        return await WelcomeDefault().reply(request)
         current_scene = SCENES.get(current_scene_id, Welcome)()
         next_scene = current_scene.move(request)
 

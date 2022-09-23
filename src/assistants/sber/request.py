@@ -46,12 +46,8 @@ class SberRequest():
         request_intents = self.request_body['request']['nlu']['intents']
         intent = list(request_intents.keys())[0]
 
-        result = {}
         slots = self.request_body['request']['nlu']['intents'][intent]['slots']
-        for slot in slots:
-            result[slot] = slots[slot]['value']
-
-        return result
+        return {slot: slots[slot]['value'] for slot in slots}
 
     @property
     def original_text(self):

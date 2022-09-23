@@ -45,32 +45,29 @@ class SberVoiceAssistantService(VoiceAssistantServiceBase):
 
                 if await get_user(user_id, self.db) != None:
                     return await WelcomeDefault().reply(request)
-                else:
+                user = {
+                    "user_id": user_id, 
+                    "group": "",
+                    "platform": "SBER"
+                }
 
-                    user = {
-                        "user_id": user_id, 
-                        "group": "",
-                        "platform": "SBER"
-                    }
-
-                    await create_user(user, self.db)
-                    return await Welcome().reply(request)
+                await create_user(user, self.db)
+                return await Welcome().reply(request)
 
             elif request.user_id != '':
                 user_id = request.user_id
 
                 if await get_user(user_id, self.db) != None:
                     return await WelcomeDefault().reply(request)
-                else:
-                    user = {
-                        "user_id": user_id,
-                        "group": "",
-                        "platform": "SBER"
-                    }
+                user = {
+                    "user_id": user_id,
+                    "group": "",
+                    "platform": "SBER"
+                }
 
-                    await create_user(user, self.db)
-                    return await Welcome().reply(request)
-                    
+                await create_user(user, self.db)
+                return await Welcome().reply(request)
+
         current_scene = SCENES.get(current_scene_id, Welcome)()
         next_scene = current_scene.move(request)
 

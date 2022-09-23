@@ -194,40 +194,37 @@ class GroupManager(BaseScene):
     async def __find_user_group(self, groups: list, user_group: str):
 
         user_group = user_group.replace(' ', '')
-        
+
         if len(user_group) < 5 or len(user_group) > 10:
             return None
 
-        result = re.search(r'[а-яА-Яa-zA-Z]{5,}', user_group)
-
-        if result:
+        if result := re.search(r'[а-яА-Яa-zA-Z]{5,}', user_group):
             return None
 
         user_group = user_group.replace(' ', '')
-        result = re.search(r'\d\d', user_group)
-
-        if result:
-            group_user_group = user_group[0:result.span()[0] - 1]
-            group_number = result.group(0)
+        if result := re.search(r'\d\d', user_group):
+            group_user_group = user_group[:result.span()[0] - 1]
+            group_number = result[0]
 
             for group in groups:
-                group_temp = group[0:7]
+                group_temp = group[:7]
 
                 if group_user_group.lower() in group.lower() and group_number in group_temp:
                     year_number = user_group[result.span()[1]:]
                     year_number = re.findall(r'\d', year_number)
 
-                    if len(year_number) > 0:
-                        year_number = ''.join(year_number)
-                        if len(year_number) == 2:
-                            if group[8:] == year_number:
-                                return group
-                        elif len(year_number) == 1:
-                            if group[8] == year_number:
-                                return group
-                    else:
+                    if len(year_number) <= 0:
                         return group
 
+                    year_number = ''.join(year_number)
+                    if (
+                        len(year_number) == 2
+                        and group[8:] == year_number
+                        or len(year_number) != 2
+                        and len(year_number) == 1
+                        and group[8] == year_number
+                    ):
+                        return group
         else:
             list_matchers = [difflib.SequenceMatcher(
                 None, user_group.lower(), group.lower()) for group in groups]
@@ -267,7 +264,7 @@ class GroupManager(BaseScene):
 
     async def user_group_reject(self, request: AliceRequest):
         self.user_group = ""
-        text = f"Давайте попробуем еще раз. Назовите вашу группу"
+        text = "Давайте попробуем еще раз. Назовите вашу группу"
         return await self.make_response(text, tts=text)
 
     async def user_group_set(self, request: AliceRequest):
@@ -307,7 +304,7 @@ class Schedule(BaseScene):
         return await handler(request)
 
     async def __get_week_parity(self, day: datetime) -> bool:
-        return False if (ScheduleUtils.get_week(day) % 2) else True
+        return not ScheduleUtils.get_week(day) % 2
 
     async def __get_day_num(self, day: str) -> str:
 
@@ -354,9 +351,10 @@ class Schedule(BaseScene):
     async def __get_day_num_from_yandex(self, day: int) -> str:
 
         days = {
-            0: f"{await self.__get_day_num(datetime.today().strftime('%A'))}",
-            1: f"{await self.__get_day_num((datetime.today() + timedelta(days=1)).strftime('%A'))}"
+            0: f"{await self.__get_day_num(datetime.now().strftime('%A'))}",
+            1: f"{await self.__get_day_num((datetime.now() + timedelta(days=1)).strftime('%A'))}",
         }
+
 
         return days[day]
 
@@ -371,12 +369,11 @@ class Schedule(BaseScene):
 
     async def __convert_to_str(self, lessons_count: int) -> str:
 
-        lesson_a = "пара"
         lesson_b = "пары"
         lesson_c = "пар"
 
         if lessons_count == 1:
-            return lesson_a
+            return "пара"
         elif lessons_count >= 2 and lessons_count <= 4:
             return lesson_b
         elif lessons_count >= 5 or lessons_count == 0:
@@ -393,11 +390,13 @@ class Schedule(BaseScene):
                 if len(lesson) == 1:
                     lesson_weeks_odd = await self.__check_odd_array(lesson[0]['weeks'])
 
-                    if even and not lesson_weeks_odd:
+                    if (
+                        even
+                        and not lesson_weeks_odd
+                        or not even
+                        and lesson_weeks_odd
+                    ):
                         count += 1
-                    elif not even and lesson_weeks_odd:
-                        count += 1
-
                 elif len(lesson) >= 2:
                     count += 1
 
@@ -469,11 +468,11 @@ class Schedule(BaseScene):
 
             if yandex_datetime:
 
-                if yandex_day == "Сегодня":
-                    text = "Сегодня воскресенье, пар нет, можно отдыхать!"
-
-                elif yandex_day == "Завтра":
+                if yandex_day == "Завтра":
                     text = "Завтра воскресенье, пар нет, можно отдыхать"
+
+                elif yandex_day == "Сегодня":
+                    text = "Сегодня воскресенье, пар нет, можно отдыхать!"
 
             else:
                 text = "В воскресенье пар нет, можно отдыхать!"
@@ -509,33 +508,34 @@ class Schedule(BaseScene):
 
             if yandex_datetime:
 
-                if yandex_day == "Сегодня":
+                if yandex_day == "Завтра":
+                    text = (
+                        "Завтра у вас нет пар! Отдыхайте!"
+                        if lessons_count == 0
+                        else f"Завтра у вас {lessons_count} {ru_ending}"
+                    )
 
-                    if lessons_count == 0:
-                        text = f"Сегодня у вас нет пар! Отдыхайте!"
-                    else:
-                        text = f"Сегодня у вас {lessons_count} {ru_ending}"
-
-                elif yandex_day == "Завтра":
-
-                    if lessons_count == 0:
-                        text = f"Завтра у вас нет пар! Отдыхайте!"
-                    else:
-                        text = f"Завтра у вас {lessons_count} {ru_ending}"
+                elif yandex_day == "Сегодня":
+                    text = (
+                        "Сегодня у вас нет пар! Отдыхайте!"
+                        if lessons_count == 0
+                        else f"Сегодня у вас {lessons_count} {ru_ending}"
+                    )
 
             else:
                 day = await self.__get_day_name(day)
 
                 if lessons_count == 0:
-                    if day == "Вторник":
-                        text = f"Во {day.lower()} пар нет! Отдыхайте"
-                    else:
-                        text = f"В {day.lower()} пар нет! Отдыхайте"
+                    text = (
+                        f"Во {day.lower()} пар нет! Отдыхайте"
+                        if day == "Вторник"
+                        else f"В {day.lower()} пар нет! Отдыхайте"
+                    )
+
+                elif day == "Вторник":
+                    text = f"Во {day.lower()} у вас {lessons_count} {ru_ending}"
                 else:
-                    if day == "Вторник":
-                        text = f"Во {day.lower()} у вас {lessons_count} {ru_ending}"
-                    else:
-                        text = f"В {day.lower()} у вас {lessons_count} {ru_ending}"
+                    text = f"В {day.lower()} у вас {lessons_count} {ru_ending}"
 
         return await self.make_response(text, tts=text)
 

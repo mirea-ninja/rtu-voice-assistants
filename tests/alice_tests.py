@@ -39,14 +39,12 @@ class TestYandexSkill(unittest.TestCase):
         self.assertTrue(TestYandexSkill.skill)
 
     def test_welcome_scene(self):
-        session = TestYandexSkill.skill.new_session(
-            f'TEST_NEW', [Interface.SCREEN])
+        session = TestYandexSkill.skill.new_session('TEST_NEW', [Interface.SCREEN])
         self.assertTrue(session.contain(
             "Привет! Теперь я умею показывать расписание РТУ МИРЭА. Для начала скажите мне свою группу."))
 
     def test_welcome_default_scene(self):
-        session = TestYandexSkill.skill.new_session(
-            f'TEST_DEFAULT', [Interface.SCREEN])
+        session = TestYandexSkill.skill.new_session('TEST_DEFAULT', [Interface.SCREEN])
         self.assertTrue(session.contain(
             "Привет! Какое расписание вы хотите посмотреть?"))
 

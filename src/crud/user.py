@@ -3,7 +3,7 @@ from ..database.database import User, Session
 
 async def create_user(user, db: Session):
 
-    if db.query(User).filter(User.user_id == user['user_id']).first() == None:
+    if db.query(User).filter(User.user_id == user['user_id']).first() is None:
         new_user = User(user_id = user['user_id'], group = user['group'], platform = user['platform'])
         db.add(new_user)
         db.commit()
